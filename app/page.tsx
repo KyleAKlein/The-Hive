@@ -15,7 +15,7 @@ function FeesExplained() {
       <p><strong>$1 to join, once.</strong> Paid in bitcoin. This signup fee goes to The Hive and is not part of your spendable balance.</p>
       <p><strong>Sending on Bitcoin.</strong> Blockchain fees vary with network demand. Your sending wallet shows its fee before you confirm.</p>
       <p><strong>Using Lightning.</strong> Payments generally have much smaller network fees. The amount depends on the payment and its route.</p>
-      <p className="fee-footnote">Network fees are separate from The Hive’s signup fee.</p>
+      <p className="fee-footnote">These are demo estimates, not live quotes. The total includes estimated costs, not a payment request: your sending wallet charges its Bitcoin fee separately. Lightning costs depend on the funding method and provider; both network fees may not apply.</p>
     </div>
   </details>;
 }
@@ -40,12 +40,17 @@ export default function Home() {
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">STEP 1 OF 3</p><h2>Join The Hive</h2><p className="flow-copy">A one-time signup. Your own Cell.</p>
-        <div className="payment-fees" aria-label="Signup fee breakdown"><div><span>One-time signup</span><strong>$1.00</strong></div><div><span>Sending fee</span><span>Shown in your wallet</span></div><p>The $1 signup fee is paid in bitcoin and does not become wallet balance.</p></div>
-        <FeesExplained/>
-        <p className="payment-demo">Payment preview · No bitcoin will move</p>
+        <p className="step">STEP 1 OF 3</p><h2>Join The Hive</h2><p className="flow-copy">Send bitcoin here</p>
         <div className="qr-frame"><div className="fake-qr" aria-label="Placeholder QR illustration, not a payment code"><QrCode/></div></div>
-        <p className="address">Demo only · No payment address</p>
+        <p className="payment-demo">Demo QR · No bitcoin will move</p>
+        <div className="payment-fees fee-estimate" aria-label="Demo signup fee estimate">
+          <div><span>Cell creation <small>(one time)</small></span><strong>$1.00</strong></div>
+          <div><span>Bitcoin fees <small>(est.)</small></span><span>$0.70</span></div>
+          <div><span>Lightning fees <small>(est.)</small></span><span>$0.10</span></div>
+          <div className="fee-total"><span>Total <small>(est.)</small></span><strong>$1.80</strong></div>
+          <span className="estimate-note">Demo estimates · USD equivalent</span>
+          <FeesExplained/>
+        </div>
         <div className="waiting"><span className="spinner"/><div><b>Waiting for your transaction…</b><small>This is a visual demo. No bitcoin will move.</small></div></div>
         <Button className="demo-forward" onClick={() => setScreen("creating")}>Transaction Received <span>Continue →</span></Button>
         <div className="progress"><span className="active">1<i>Send</i></span><span>2<i>Create</i></span><span>3<i>Receive keys</i></span></div>

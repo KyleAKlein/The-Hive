@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "../vendor/shadcn-tailwind-4.13.0.css";
+.join-screen .payment-fees.fee-estimate{margin-top:4px;padding:17px 16px 4px;background:transparent;border-color:#3c3424}
+.fee-estimate>div{font-size:14px;align-items:baseline;line-height:1.5;margin-bottom:12px}
+.fee-estimate small{font-size:13px;color:#aaa99f}
+.fee-estimate>div.fee-total{border-top:1px solid #403725;padding-top:14px;margin-top:15px;margin-bottom:6px;font-size:18px;color:#f7f4ed}
+.fee-estimate .fee-total strong{font-size:22px;font-weight:600;color:#f5cb6f}
+.estimate-note{display:block;color:#aaa99f;font-size:12px;margin-bottom:4px}
+.fee-estimate .fee-content p{border:0;padding:0;margin:0 0 14px;font-size:14px}
+.fee-estimate .fee-content p:last-child{margin:0}
 .startup-stage .phone-surface.original-entrance{min-height:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
 .phone-surface.original-entrance:before{display:none}
 .original-artwork{position:relative;width:100%;max-width:390px;margin:auto}
