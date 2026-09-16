@@ -7,6 +7,19 @@ import { Input } from "@/components/ui/input";
 
 type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home";
 
+function FeesExplained() {
+  return <details className="fee-details">
+    <summary>Fees explained <span aria-hidden="true">⌄</span></summary>
+    <div className="fee-content">
+      <h3>The sting, explained.</h3>
+      <p><strong>$1 to join, once.</strong> Paid in bitcoin. This signup fee goes to The Hive and is not part of your spendable balance.</p>
+      <p><strong>Sending on Bitcoin.</strong> Blockchain fees vary with network demand. Your sending wallet shows its fee before you confirm.</p>
+      <p><strong>Using Lightning.</strong> Payments generally have much smaller network fees. The amount depends on the payment and its route.</p>
+      <p className="fee-footnote">Network fees are separate from The Hive’s signup fee.</p>
+    </div>
+  </details>;
+}
+
 function HiveMark({ compact = false }: { compact?: boolean }) {
   return <div className={`hive-mark ${compact ? "compact" : ""}`} aria-label="The Hive logo"><span className="hex h1"/><span className="hex h2"/><span className="hex h3"/></div>;
 }
@@ -23,17 +36,21 @@ export default function Home() {
         <div className="promise">Small Payments.<br/>A Bigger World.</div>
         <div className="entry-actions">
           <button className="hex-action join" onClick={() => setScreen("join")}><span><strong>JOIN<br/>THE HIVE</strong><small>Send Bitcoin.<br/>Get Your Cell.</small></span></button>
+          <div className="signup-fees"><p><strong>$1 one-time signup</strong> + network fees</p><FeesExplained/></div>
           <button className="hex-action enter" onClick={() => setScreen("enter")}><span><strong>ENTER<br/>THE HIVE</strong><small>I already<br/>have a key.</small></span></button>
         </div>
         <p className="custody-note"><ShieldCheck size={15}/> The Hive never holds your bitcoin.</p>
       </div>}
 
-      {screen === "join" && <div className="flow-screen">
+      {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">STEP 1 OF 3</p><h2>Send Bitcoin</h2><p className="flow-copy">Send any amount to create your Lightning wallet and claim your Cell.</p>
-        <div className="qr-frame"><div className="fake-qr" aria-label="Demo Lightning QR code"><QrCode/></div></div>
-        <button className="address"><span>bc1q4z3...9f7e</span><Copy size={17}/></button>
+        <p className="step">STEP 1 OF 3</p><h2>Join The Hive</h2><p className="flow-copy">A one-time signup. Your own Cell.</p>
+        <div className="payment-fees" aria-label="Signup fee breakdown"><div><span>One-time signup</span><strong>$1.00</strong></div><div><span>Sending fee</span><span>Shown in your wallet</span></div><p>The $1 signup fee is paid in bitcoin and does not become wallet balance.</p></div>
+        <FeesExplained/>
+        <p className="payment-demo">Payment preview · No bitcoin will move</p>
+        <div className="qr-frame"><div className="fake-qr" aria-label="Placeholder QR illustration, not a payment code"><QrCode/></div></div>
+        <p className="address">Demo only · No payment address</p>
         <div className="waiting"><span className="spinner"/><div><b>Waiting for your transaction…</b><small>This is a visual demo. No bitcoin will move.</small></div></div>
         <Button className="demo-forward" onClick={() => setScreen("creating")}>Transaction Received <span>Continue →</span></Button>
         <div className="progress"><span className="active">1<i>Send</i></span><span>2<i>Create</i></span><span>3<i>Receive keys</i></span></div>
