@@ -36,10 +36,8 @@ export default function Home() {
         <div className="promise">Small Payments.<br/>A Bigger World.</div>
         <div className="entry-actions">
           <button className="hex-action join" onClick={() => setScreen("join")}><span><strong>JOIN<br/>THE HIVE</strong><small>Send Bitcoin.<br/>Get Your Cell.</small></span></button>
-          <div className="signup-fees"><p><strong>$1 one-time signup</strong> + network fees</p><FeesExplained/></div>
           <button className="hex-action enter" onClick={() => setScreen("enter")}><span><strong>ENTER<br/>THE HIVE</strong><small>I already<br/>have a key.</small></span></button>
         </div>
-        <p className="custody-note"><ShieldCheck size={15}/> The Hive never holds your bitcoin.</p>
       </div>}
 
       {screen === "join" && <div className="flow-screen join-screen">
@@ -94,6 +92,5 @@ export default function Home() {
         <p className="custody-note"><ShieldCheck size={15}/> Your keys. Your control. Always.</p>
       </div>}
     </section>
-    <aside className="design-note"><span>STARTUP / 01</span><h2>One choice.<br/>Two clear paths.</h2><p>New members create a self-custodial Cell. Returning members unlock theirs with the key only they control.</p></aside>
   </main>;
 }
