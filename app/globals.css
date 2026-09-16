@@ -1,6 +1,15 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "../vendor/shadcn-tailwind-4.13.0.css";
+.startup-stage .phone-surface.original-entrance{min-height:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
+.phone-surface.original-entrance:before{display:none}
+.original-artwork{position:relative;width:100%;max-width:390px;margin:auto}
+.original-artwork img{display:block;width:100%;height:auto;user-select:none}
+.artwork-action{position:absolute;left:25%;width:47%;border:0;padding:0;background:transparent;cursor:pointer;border-radius:24%;-webkit-tap-highlight-color:#f5bd4320}
+.artwork-join{top:45.2%;height:25.4%}
+.artwork-enter{top:71%;height:23.3%}
+.artwork-action:focus-visible{outline:3px solid #fff1b6;outline-offset:4px;box-shadow:0 0 22px #f5bd4377}
+.artwork-action:active{background:#fff1b610}
 /* Keep the entrance focused on the original two choices. */
 main.startup-stage{grid-template-columns:minmax(0,390px);gap:0;padding:32px 20px;background:#050605}
 .startup-stage .phone-surface{min-height:780px;background:radial-gradient(ellipse at 10% 52%,#6f48131c,transparent 50%),#060705;box-shadow:inset 0 0 0 5px #0b0c0b,inset 0 0 0 6px #363731,0 24px 80px #000}

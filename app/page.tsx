@@ -30,14 +30,11 @@ export default function Home() {
 
   return <main className="startup-stage">
     <div className="ambient-grid" aria-hidden="true"><i/><i/><i/><i/><i/></div>
-    <section className="phone-surface" aria-live="polite">
-      {screen === "welcome" && <div className="welcome-screen">
-        <div className="identity"><HiveMark/><h1>THE HIVE</h1><p>PEOPLE <b>•</b> PAYMENTS <b>•</b> POSSIBILITIES</p></div>
-        <div className="promise">Small Payments.<br/>A Bigger World.</div>
-        <div className="entry-actions">
-          <button className="hex-action join" onClick={() => setScreen("join")}><span><strong>JOIN<br/>THE HIVE</strong><small>Send Bitcoin.<br/>Get Your Cell.</small></span></button>
-          <button className="hex-action enter" onClick={() => setScreen("enter")}><span><strong>ENTER<br/>THE HIVE</strong><small>I already<br/>have a key.</small></span></button>
-        </div>
+    <section className={`phone-surface ${screen === "welcome" ? "original-entrance" : ""}`} aria-live="polite">
+      {screen === "welcome" && <div className="original-artwork">
+        <img src="/hive-original-welcome.png" alt="The Hive. People, payments, possibilities. Small Payments. A Bigger World." width="252" height="506" draggable={false}/>
+        <button className="artwork-action artwork-join" onClick={() => setScreen("join")} aria-label="Join The Hive — Send Bitcoin. Get Your Cell."/>
+        <button className="artwork-action artwork-enter" onClick={() => setScreen("enter")} aria-label="Enter The Hive — I already have a key."/>
       </div>}
 
       {screen === "join" && <div className="flow-screen join-screen">
