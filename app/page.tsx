@@ -58,7 +58,7 @@ export default function Home() {
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <p className="step">STEP 1 OF 3</p><h2>Join The Hive</h2><p className="flow-copy">Send bitcoin here</p>
-        <div className="qr-frame"><div className="fake-qr" aria-label="Placeholder QR illustration, not a payment code"><QrCode/></div></div>
+        <div className="qr-frame"><svg className="qr-hex-outline" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="#d7ad58" strokeWidth="1.5"/></svg><div className="fake-qr" aria-label="Placeholder QR illustration, not a payment code"><QrCode/></div></div>
         <p className="payment-demo">Demo QR · No bitcoin will move</p>
         <div className="payment-fees fee-estimate" aria-label="Demo signup fee estimate">
           <div><span>Cell creation <small>(one time)</small></span><strong>$1.00</strong></div>

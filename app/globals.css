@@ -60,3 +60,10 @@ main.startup-stage{grid-template-columns:minmax(0,390px);gap:0;padding:32px 20px
 @media(max-width:850px){.startup-stage:has(.modern-entrance){padding:0}.startup-stage .phone-surface.modern-entrance{max-width:480px;border:0;border-radius:0;box-shadow:none}.modern-welcome{min-height:100svh;padding-top:max(38px,env(safe-area-inset-top));padding-bottom:max(26px,env(safe-area-inset-bottom))}}
 @media(max-height:780px){.modern-welcome{min-height:100svh;padding-top:28px;padding-bottom:22px}.welcome-logo{width:72px;height:72px;margin-bottom:17px}.welcome-promise{margin:25px 0 17px;font-size:17px}.welcome-choice{width:174px;height:184px}.welcome-choice strong{font-size:20px}.welcome-choice small{font-size:12px;margin-top:11px}}
 @media(prefers-reduced-motion:reduce){.welcome-choice{transition:none}}
+
+/* Matching rounded hexagons across entrance and funding. */
+.welcome-choices{gap:0}
+.choice-enter{margin-top:-16px}
+.join-screen .qr-frame{width:176px;height:184px;background:transparent;clip-path:none;filter:none;position:relative}
+.join-screen .qr-frame:before{display:none}
+.qr-hex-outline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
