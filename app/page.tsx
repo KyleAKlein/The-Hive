@@ -120,9 +120,10 @@ export default function Home() {
 
       {screen === "home" && <div className="flow-screen home-screen">
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <div className="cell-badge"><span>D-313</span><Copy size={16}/></div>
+        <div className="cell-badge"><svg className="wallet-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><Copy size={16}/></div>
         <p className="home-label">YOUR CELL</p><h2>21,340 sats</h2><p className="fiat">≈ $14.28</p>
-        <div className="home-actions"><button><Send/><span>Send</span></button><button><QrCode/><span>Receive</span></button><button><Users/><span>The Hive</span></button><button><Clock3/><span>Activity</span></button></div>
+        <div className="home-actions"><button><svg className="wallet-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button><svg className="wallet-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button><svg className="wallet-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button><svg className="wallet-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
+        <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={() => { setKey(""); setScreen("welcome"); }}>Return to startup</button>
         <p className="custody-note"><ShieldCheck size={15}/> Your keys. Your control. Always.</p>
       </div>}

@@ -91,3 +91,22 @@ main.startup-stage{grid-template-columns:minmax(0,390px);gap:0;padding:32px 20px
 .capture-key code{display:block;font-size:14px;line-height:1.65;overflow-wrap:anywhere;user-select:all;color:#f3f0e7}
 .capture-key p,.capture-help{font-size:12px;line-height:1.5;color:#aaa99f;margin:18px 0 0}
 .capture-help{text-align:center}
+
+/* Wallet: equal hexagons, aligned columns, consistent rhythm. */
+.home-screen{padding:54px 28px 32px;gap:0}
+.home-screen .cell-badge{position:relative;isolation:isolate;width:126px;height:132px;margin-top:30px;background:transparent;clip-path:none;filter:none;font-weight:600;font-size:24px;color:#f5ce79}
+.cell-badge:before,.home-actions button:before{display:none}
+.wallet-hex-frame{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+.home-screen .home-label{margin-top:15px}
+.home-screen .fiat{margin-bottom:25px}
+.home-actions{width:100%;max-width:300px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;align-items:center}
+.home-actions button{width:100%;height:auto;aspect-ratio:208/218;position:relative;isolation:isolate;clip-path:none;background:transparent;cursor:pointer;color:#f3f0e7;gap:11px;transition:transform .18s}
+.home-actions button .wallet-hex-frame{width:100%;height:100%}
+.home-actions button>svg:not(.wallet-hex-frame){width:25px;height:25px;color:#f5ce79;stroke-width:1.6}
+.home-actions span{font-size:14px;font-weight:500}
+.home-actions button:hover{transform:translateY(-2px)}
+.home-actions button:focus-visible{outline:2px solid #f5ce79;outline-offset:2px;border-radius:22px}
+.wallet-motto{font-size:15px;letter-spacing:.015em;color:#d7ad58;margin:25px 0 0}
+.home-screen .restart{margin-top:15px}
+.home-screen .custody-note{margin-top:28px}
+@media(prefers-reduced-motion:reduce){.home-actions button{transition:none}}
