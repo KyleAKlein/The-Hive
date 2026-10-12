@@ -124,3 +124,13 @@ main.startup-stage{grid-template-columns:minmax(0,390px);gap:0;padding:32px 20px
 
 .home-actions{gap:0;max-width:300px}
 .home-actions button{aspect-ratio:196/206}
+
+.payment-panel,.activity-list{width:100%;border:1px solid #36392f;border-radius:20px;background:#0d100c;padding:20px}
+.payment-field{display:block;color:#d9d7cd;font-size:14px;margin-top:20px}.payment-field input{margin-top:8px;height:48px;font-size:16px}
+.available-balance{font-size:13px;color:#d7ad58;margin:0}
+.receive-cell{display:flex;flex-direction:column;align-items:center;gap:7px;margin-top:20px}.receive-cell strong{font-size:32px;color:#f5ce79}.receive-cell span,.receive-cell small{font-size:12px;color:#aaa99f}
+.payment-error{font-size:13px;color:#f48b8b;line-height:1.5;margin:10px 0 0}.payment-success{display:flex;gap:8px;align-items:center;font-size:14px;line-height:1.5;color:#a0dfab;margin-top:18px}
+.demo-request{display:flex;flex-direction:column;gap:9px;margin-top:20px;padding:14px;border:1px solid #514122;border-radius:12px;font-size:13px}.demo-request code{overflow-wrap:anywhere;color:#f5ce79}.demo-request small{color:#aaa99f}
+.payment-screen .session-note,.activity-screen .session-note{margin-top:28px}
+.transaction-row{display:flex;align-items:center;gap:10px;padding:16px 0;border-bottom:1px solid #30332b}.transaction-row:last-child{border-bottom:0}.transaction-icon{color:#d7ad58}.transaction-icon svg{width:20px}.transaction-row>div:nth-child(2){flex:1;min-width:0}.transaction-row b{font-size:13px;overflow-wrap:anywhere}.transaction-row small{display:block;font-size:11px;color:#aaa99f;line-height:1.6}.transaction-row>strong{text-align:right;font-size:15px}.transaction-row .received{color:#a0dfab}.transaction-row .sent{color:#f0d294}
+.activity-empty{text-align:center;padding:25px 0;color:#aaa99f}.activity-empty>svg{margin:auto;color:#d7ad58}.activity-empty h3{color:#f3f0e7;margin:16px 0 8px}.activity-empty p{font-size:14px;line-height:1.5;margin-bottom:20px}

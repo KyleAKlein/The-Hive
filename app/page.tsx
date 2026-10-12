@@ -5,7 +5,7 @@ import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Send, ShieldCheck, Us
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key";
+type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity";
 
 function FeesExplained() {
   return <details className="fee-details">
@@ -27,6 +27,24 @@ function HiveMark({ compact = false }: { compact?: boolean }) {
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [key, setKey] = useState("");
+
+  const [balance, setBalance] = useState(21340);
+  const [recipient, setRecipient] = useState("");
+  const [amount, setAmount] = useState("");
+  const [notice, setNotice] = useState("");
+  const [transactions, setTransactions] = useState<{id: number; kind: "sent" | "received"; cell: string; amount: number; time: string}[]>([]);
+  const sats = Number(amount);
+  const validAmount = /^\d+$/.test(amount) && Number.isSafeInteger(sats) && sats > 0 && sats <= 100000000;
+  const validRecipient = /^[A-Z]-\d{3,6}$/.test(recipient.trim().toUpperCase()) && recipient.trim().toUpperCase() !== "D-313";
+  const openPayment = (next: Screen) => { setAmount(""); setRecipient(""); setNotice(""); setScreen(next); };
+  const recordPayment = (kind: "sent" | "received") => {
+    if (!validAmount || (kind === "sent" && (!validRecipient || sats > balance))) return;
+    const cell = kind === "sent" ? recipient.trim().toUpperCase() : "Demo funding";
+    setBalance(value => value + (kind === "sent" ? -sats : sats));
+    setTransactions(value => [{id: Date.now(), kind, cell, amount: sats, time: new Date().toLocaleString()}, ...value]);
+    setNotice(kind === "sent" ? `Sent ${sats.toLocaleString()} demo sats to ${cell}.` : `Received ${sats.toLocaleString()} demo sats.`);
+    setAmount("");
+  };
 
   return <main className="startup-stage">
     <div className="ambient-grid" aria-hidden="true"><i/><i/><i/><i/><i/></div>
@@ -118,11 +136,39 @@ export default function Home() {
         <p className="session-note"><Zap size={15}/> Your key is used only for this session and is never saved.</p>
       </div>}
 
+      {(screen === "send" || screen === "receive") && <div className="flow-screen payment-screen">
+        <button className="back" onClick={() => setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button>
+        <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
+        <p className="step">DEMO WALLET · D-313</p><h2>{screen === "send" ? "Send sats" : "Receive sats"}</h2>
+        <p className="flow-copy">{screen === "send" ? "Send a little love to another Cell." : "Create a demo request or add simulated funds."}</p>
+        <div className="payment-panel">
+          <p className="available-balance">Available: {balance.toLocaleString()} demo sats</p>
+          {screen === "send" && <label className="payment-field">Recipient Cell<Input value={recipient} onChange={e => {setRecipient(e.target.value);setNotice("");}} placeholder="A-101" autoCapitalize="characters"/></label>}
+          {screen === "receive" && <div className="receive-cell"><span>Your Cell</span><strong>D-313</strong><small>Share this Cell with the sender.</small></div>}
+          <label className="payment-field">Amount in sats<Input inputMode="numeric" value={amount} onChange={e => {setAmount(e.target.value);setNotice("");}} placeholder="500"/></label>
+          {amount && !validAmount && <p className="payment-error">Enter a whole number from 1 to 100,000,000 sats.</p>}
+          {screen === "send" && recipient && !validRecipient && <p className="payment-error">Use a Cell such as A-101, other than your own.</p>}
+          {screen === "send" && validAmount && sats > balance && <p className="payment-error">Your demo balance is too low.</p>}
+          {screen === "receive" && validAmount && <div className="demo-request"><b>Demo payment request</b><code>HIVE-DEMO:D-313:{sats}</code><small>Text request only · Not a Lightning invoice</small></div>}
+          <Button className="unlock" disabled={!validAmount || (screen === "send" && (!validRecipient || sats > balance))} onClick={() => recordPayment(screen === "send" ? "sent" : "received")}>{screen === "send" ? "Send demo sats" : "Simulate received payment"}</Button>
+          {notice && <p className="payment-success" role="status"><Check size={18}/>{notice}</p>}
+        </div>
+        <p className="session-note">Demo only. No real bitcoin moves. Balance and history reset when this page reloads.</p>
+      </div>}
+
+      {screen === "activity" && <div className="flow-screen activity-screen">
+        <button className="back" onClick={() => setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button>
+        <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
+        <p className="step">DEMO WALLET · D-313</p><h2>Activity</h2><p className="flow-copy">{balance.toLocaleString()} sats available</p>
+        <div className="activity-list">{transactions.length ? transactions.map(transaction => <article className="transaction-row" key={transaction.id}><div className="transaction-icon">{transaction.kind === "sent" ? <Send/> : <QrCode/>}</div><div><b>{transaction.kind === "sent" ? `To ${transaction.cell}` : transaction.cell}</b><small>{transaction.time}</small><small>Completed · Demo</small></div><strong className={transaction.kind}>{transaction.kind === "sent" ? "−" : "+"}{transaction.amount.toLocaleString()}<small>sats</small></strong></article>) : <div className="activity-empty"><Clock3/><h3>No payments yet</h3><p>Send or receive demo sats to see them here.</p><Button onClick={() => openPayment("send")}>Send demo sats</Button></div>}</div>
+        <p className="session-note">Simulated transactions · This session only</p>
+      </div>}
+
       {screen === "home" && <div className="flow-screen home-screen">
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <div className="cell-badge"><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><Copy size={16}/></div>
-        <p className="home-label">YOUR CELL</p><h2>21,340 sats</h2><p className="fiat">≈ $14.28</p>
-        <div className="home-actions"><button><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
+        <p className="home-label">YOUR CELL</p><h2>{balance.toLocaleString()} sats</h2><p className="fiat">Simulated balance · No real bitcoin</p>
+        <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => openPayment("receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={() => { setKey(""); setScreen("welcome"); }}>Return to startup</button>
         <p className="custody-note"><ShieldCheck size={15}/> Your keys. Your control. Always.</p>
