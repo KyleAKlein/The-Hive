@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { allocateDeposit } from "@/lib/bucket-math";
 import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Send, ShieldCheck, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,30 @@ export default function Home() {
   const [bucketNotice, setBucketNotice] = useState("");
   const [ruleDraft, setRuleDraft] = useState<Record<number,string>>({});
   const [editingRules, setEditingRules] = useState(false);
+  const [arranging, setArranging] = useState(false);
+  const [draggedBucket, setDraggedBucket] = useState<number | null>(null);
+  const [dropBucket, setDropBucket] = useState<number | null>(null);
+  const [storageReady, setStorageReady] = useState(false);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressClick = useRef(false);
+  useEffect(() => {
+    try {
+      const saved=JSON.parse(localStorage.getItem("hive-demo-wallet-v1") ?? "null");
+      if(saved && Number.isSafeInteger(saved.balance) && saved.balance>=0 && Array.isArray(saved.buckets) && saved.buckets.every((b: {id:number;name:string;kind:string;balance:number;percent:number;reward:number;completions:number})=>Number.isSafeInteger(b.id)&&typeof b.name==="string"&&(b.kind==="habit"||b.kind==="savings")&&Number.isSafeInteger(b.balance)&&b.balance>=0&&Number.isInteger(b.percent)&&b.percent>=0&&b.percent<=100&&Number.isSafeInteger(b.reward)&&b.reward>=0&&Number.isInteger(b.completions)&&b.completions>=0) && saved.buckets.reduce((sum:number,b:{percent:number})=>sum+b.percent,0)<=100) {
+        setBalance(saved.balance);setBuckets(saved.buckets);
+        if(Array.isArray(saved.transactions) && saved.transactions.every((t:{kind:string;amount:number;cell:string;time:string})=>["sent","received","allocated","released"].includes(t.kind)&&Number.isSafeInteger(t.amount)&&t.amount>0&&typeof t.cell==="string"&&typeof t.time==="string"))setTransactions(saved.transactions);
+      }
+    } catch { /* A fresh demo is safe if browser storage is unavailable. */ }
+    setStorageReady(true);
+    return ()=>{if(holdTimer.current)clearTimeout(holdTimer.current);};
+  },[]);
+  useEffect(()=>{if(storageReady)try{localStorage.setItem("hive-demo-wallet-v1",JSON.stringify({balance,buckets,transactions}));}catch{/* Session continues without browser storage. */}},[storageReady,balance,buckets,transactions]);
+  const reorderBucket = (from:number,to:number) => setBuckets(old=>{
+    const next=[...old], source=next.findIndex(b=>b.id===from),target=next.findIndex(b=>b.id===to);
+    if(source<0||target<0||source===target)return old;
+    const [item]=next.splice(source,1);next.splice(target,0,item);return next;
+  });
+  const cancelHold = ()=>{if(holdTimer.current)clearTimeout(holdTimer.current);holdTimer.current=null;};
   const reserved = buckets.reduce((total,bucket) => total+bucket.balance,0);
   const totalBalance = balance+reserved;
   const selected = buckets.find(bucket => bucket.id === selectedBucket);
@@ -188,7 +212,7 @@ export default function Home() {
           <Button className="unlock" disabled={!validAmount || (screen === "send" && (!validRecipient || sats > balance))} onClick={() => recordPayment(screen === "send" ? "sent" : "received")}>{screen === "send" ? "Send demo sats" : "Simulate received payment"}</Button>
           {notice && <p className="payment-success" role="status"><Check size={18}/>{notice}</p>}
         </div>
-        <p className="session-note">Demo only. No real bitcoin moves. Balance and history reset when this page reloads.</p>
+        <p className="session-note">Demo only. No real bitcoin moves. Demo balance and history are saved on this browser.</p>
       </div>}
 
       {screen === "activity" && <div className="flow-screen activity-screen">
@@ -196,32 +220,40 @@ export default function Home() {
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <p className="step">DEMO WALLET · D-313</p><h2>Activity</h2><p className="flow-copy">{balance.toLocaleString()} sats available</p>
         <div className="activity-list">{transactions.length ? transactions.map(transaction => <article className="transaction-row" key={transaction.id}><div className="transaction-icon">{transaction.kind === "sent" ? <Send/> : <QrCode/>}</div><div><b>{transaction.kind === "sent" ? `To ${transaction.cell}` : transaction.cell}</b><small>{transaction.time}</small><small>{transaction.kind === "allocated" ? "Set aside · Internal" : transaction.kind === "released" ? "Returned · Internal" : "Completed · Demo"}</small></div><strong className={transaction.kind}>{(transaction.kind === "sent" || transaction.kind === "allocated") ? "−" : "+"}{transaction.amount.toLocaleString()}<small>sats</small></strong></article>) : <div className="activity-empty"><Clock3/><h3>No payments yet</h3><p>Send or receive demo sats to see them here.</p><Button onClick={() => openPayment("send")}>Send demo sats</Button></div>}</div>
-        <p className="session-note">Simulated transactions · This session only</p>
+        <p className="session-note">Simulated transactions · Saved on this browser</p>
       </div>}
 
       {screen === "buckets" && <div className="flow-screen buckets-screen">
         <button className="back" onClick={() => setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">ONE WALLET · YOUR PRIORITIES</p><h2>Your buckets</h2><p className="flow-copy">Small steps. Something to show for them.</p>
+        <p className="step">ONE WALLET · YOUR PRIORITIES</p><h2>My Wallet</h2><p className="flow-copy">Small steps. Something to show for them.</p>
         <div className="bucket-summary"><div><small>Spendable</small><b>{balance.toLocaleString()}</b></div><div><small>Set aside</small><b>{reserved.toLocaleString()}</b></div><span>{totalBalance.toLocaleString()} demo sats in your wallet</span></div>
-        <div className="bucket-grid">{buckets.map(bucket => <button className={`bucket-tile ${selectedBucket === bucket.id ? "selected" : ""}`} key={bucket.id} onClick={() => {setSelectedBucket(bucket.id);setBucketAmount("");setBucketNotice("");}}><svg viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="currentColor" strokeWidth="1.8"/></svg><span><small>{bucket.kind === "habit" ? "HABIT" : "SAVINGS"}</small><b>{bucket.name}</b><strong>{bucket.balance.toLocaleString()}</strong><small>sats · {bucket.percent}% of deposits</small></span></button>)}</div>
+        <div className="wallet-grid-toolbar"><span>Wallet buckets</span><button onClick={()=>{setArranging(!arranging);setDraggedBucket(null);setDropBucket(null);}}>{arranging ? "Done" : "Arrange"}</button></div>
+        <p className="arrange-hint">{arranging ? "Drag a tile to another position. Or select one and use the arrow buttons." : "Tap a bucket to open it. Hold a tile to arrange."}</p>
+        <div className={`bucket-grid ${arranging ? "is-arranging" : ""}`}>{buckets.map(bucket => <button className={`bucket-tile ${selectedBucket === bucket.id ? "selected" : ""} ${draggedBucket===bucket.id ? "is-dragged" : ""} ${dropBucket===bucket.id ? "drop-target" : ""}`} key={bucket.id} data-bucket-id={bucket.id}
+          onPointerDown={e=>{suppressClick.current=false;if(arranging){setDraggedBucket(bucket.id);setSelectedBucket(bucket.id);e.currentTarget.setPointerCapture(e.pointerId);}else{holdTimer.current=setTimeout(()=>{setArranging(true);setSelectedBucket(bucket.id);suppressClick.current=true;},450);}}}
+          onPointerMove={e=>{if(draggedBucket!==null){const tile=document.elementFromPoint(e.clientX,e.clientY)?.closest("[data-bucket-id]");setDropBucket(tile ? Number(tile.getAttribute("data-bucket-id")) : null);}else cancelHold();}}
+          onPointerUp={e=>{cancelHold();if(draggedBucket!==null){const tile=document.elementFromPoint(e.clientX,e.clientY)?.closest("[data-bucket-id]");if(tile)reorderBucket(draggedBucket,Number(tile.getAttribute("data-bucket-id")));suppressClick.current=true;setDraggedBucket(null);setDropBucket(null);}}}
+          onPointerCancel={()=>{cancelHold();setDraggedBucket(null);setDropBucket(null);}}
+          onClick={() => {if(suppressClick.current){suppressClick.current=false;return;}setSelectedBucket(bucket.id);setBucketAmount("");setBucketNotice("");}}><svg viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="currentColor" strokeWidth="1.8"/></svg><span><small>{bucket.kind === "habit" ? "HABIT" : "SAVINGS"}</small><b>{bucket.name}</b><strong>{bucket.balance.toLocaleString()}</strong><small>sats · {bucket.percent}% of deposits</small></span></button>)}</div>
+        {arranging && selected && <div className="bucket-transfer arrange-controls"><Button variant="outline" disabled={buckets[0]?.id===selected.id} onClick={()=>{const i=buckets.findIndex(b=>b.id===selected.id);if(i>0)reorderBucket(selected.id,buckets[i-1].id);}}>← Move earlier</Button><Button variant="outline" disabled={buckets.at(-1)?.id===selected.id} onClick={()=>{const i=buckets.findIndex(b=>b.id===selected.id);if(i<buckets.length-1)reorderBucket(selected.id,buckets[i+1].id);}}>Move later →</Button></div>}
         {!buckets.length && <p className="bucket-empty">Create Running for habit rewards, or a family savings bucket to start setting sats aside.</p>}
         {selected && <section className="bucket-panel"><h3>{selected.name}</h3><p>{selected.kind === "habit" ? `${selected.completions} completions logged` : "Savings set aside inside your wallet"}</p>
           {selected.kind === "habit" && <><label className="payment-field">Reward per completion (sats)<Input inputMode="numeric" value={selected.reward} onChange={e=>{const n=Number(e.target.value);if(Number.isSafeInteger(n)&&n>=0&&n<=100000000)setBuckets(old=>old.map(b=>b.id===selected.id?{...b,reward:n}:b));}}/></label><Button className="bucket-primary" disabled={selected.reward<=0 || selected.reward>balance} onClick={()=>moveBucket("in",selected.reward,true)}>Log habit · Set aside {selected.reward.toLocaleString()} sats</Button>{selected.reward>balance && <p className="payment-error">Not enough spendable sats for this reward.</p>}</>}
           <label className="payment-field">Move sats<Input value={bucketAmount} inputMode="numeric" placeholder="500" onChange={e=>setBucketAmount(e.target.value)}/></label>
           <div className="bucket-transfer"><Button disabled={!validTransfer||transferAmount>balance} onClick={()=>moveBucket("in",transferAmount)}>Set aside</Button><Button variant="outline" disabled={!validTransfer||transferAmount>selected.balance} onClick={()=>moveBucket("out",transferAmount)}>Return to wallet</Button></div>
           {bucketNotice && <p className="payment-success" role="status">{bucketNotice}</p>}
-          {selected.balance===0 && <button className="text-action" onClick={()=>{setBuckets(old=>old.filter(b=>b.id!==selected.id));setSelectedBucket(null);}}>Delete empty bucket</button>}
+          <button className="text-action" onClick={()=>{if(selected.balance>0){setBalance(old=>old+selected.balance);addHistory("released",`Deleted bucket · ${selected.name}`,selected.balance);}setBuckets(old=>old.filter(b=>b.id!==selected.id));setSelectedBucket(null);}}>{selected.balance>0 ? `Delete bucket · Return ${selected.balance.toLocaleString()} sats` : "Delete empty bucket"}</button>
         </section>}
         <section className="bucket-panel"><h3>Create a bucket</h3><label className="payment-field">Name<Input maxLength={32} value={bucketName} onChange={e=>setBucketName(e.target.value)} placeholder="Running, College fund…"/></label><div className="bucket-kind"><button aria-pressed={bucketKind==="savings"} onClick={()=>setBucketKind("savings")}>Savings</button><button aria-pressed={bucketKind==="habit"} onClick={()=>setBucketKind("habit")}>Habit</button></div><Button className="bucket-primary" disabled={!bucketName.trim()||buckets.some(b=>b.name.toLowerCase()===bucketName.trim().toLowerCase())} onClick={createBucket}>Create bucket</Button></section>
         {!!buckets.length && <section className="bucket-panel"><h3>Split incoming deposits</h3><p>Choose a percentage for each bucket. The rest stays spendable. Applies to new deposits only.</p>{!editingRules ? <><p className="split-summary">{buckets.reduce((sum,b)=>sum+b.percent,0)}% set aside · {100-buckets.reduce((sum,b)=>sum+b.percent,0)}% spendable</p><Button variant="outline" onClick={()=>{setRuleDraft(Object.fromEntries(buckets.map(b=>[b.id,String(b.percent)])));setEditingRules(true);}}>Edit deposit split</Button></> : <><div className="split-fields">{buckets.map(bucket=><label key={bucket.id}>{bucket.name}<div><Input inputMode="numeric" value={ruleDraft[bucket.id]??String(bucket.percent)} onChange={e=>setRuleDraft(old=>({...old,[bucket.id]:e.target.value}))}/><span>%</span></div></label>)}</div><p className={rulesValid ? "split-summary" : "payment-error"}>{rulesValid ? `${100-draftTotal}% stays spendable` : "Use whole percentages totaling no more than 100%."}</p><div className="bucket-transfer"><Button disabled={!rulesValid} onClick={()=>{setBuckets(old=>old.map(b=>({...b,percent:Number(ruleDraft[b.id]??b.percent)})));setEditingRules(false);}}>Save split</Button><Button variant="outline" onClick={()=>setEditingRules(false)}>Cancel</Button></div></>}</section>}
-        <p className="bucket-footnote">Buckets divide one wallet balance. They have no separate keys. Demo balances and habit history reset on reload.</p>
+        <p className="bucket-footnote">Buckets divide one wallet balance. They have no separate keys. Demo buckets, balances, and arrangement are saved on this browser. No real bitcoin or private keys are stored.</p>
       </div>}
 
       {screen === "home" && <div className="flow-screen home-screen">
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <div className="cell-badge"><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><Copy size={16}/></div>
-        <p className="home-label">YOUR CELL</p><h2>{balance.toLocaleString()} sats</h2><p className="fiat">Spendable · {reserved.toLocaleString()} sats in buckets</p><button className="bucket-entry" onClick={()=>setScreen("buckets")}>Your buckets <span>→</span></button>
+        <button className="cell-badge" aria-label="Open My Wallet and buckets" onClick={()=>setScreen("buckets")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><small>My Wallet</small></button>
+        <p className="home-label">YOUR CELL · D-313</p><h2>{balance.toLocaleString()} sats</h2><p className="fiat">Spendable · {reserved.toLocaleString()} sats in buckets</p>
         <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => openPayment("receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={() => { setKey(""); setScreen("welcome"); }}>Return to startup</button>
