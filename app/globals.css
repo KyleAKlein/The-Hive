@@ -121,3 +121,6 @@ main.startup-stage{grid-template-columns:minmax(0,390px);gap:0;padding:32px 20px
 .home-actions{gap:12px;max-width:312px}
 .home-actions button{min-width:0;min-height:0;overflow:visible}
 @media(max-height:780px){.choice-enter{margin-top:-11.7px}}
+
+.home-actions{gap:0;max-width:300px}
+.home-actions button{aspect-ratio:196/206}
