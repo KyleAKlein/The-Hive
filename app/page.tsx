@@ -77,7 +77,7 @@ export default function Home() {
         <button className="back" onClick={() => setScreen("join")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <p className="step">STEP 2 OF 3</p><h2>Creating Your Hive</h2><p className="flow-copy">Your Bitcoin has been received. We’re setting up your Lightning wallet, Cell, and keys.</p>
-        <div className="creation-emblem"><HiveMark compact/></div>
+        <div className="creation-emblem"><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><HiveMark compact/></div>
         <div className="check-list"><p><span><Check/></span>Confirming transaction</p><p><span><Check/></span>Creating your wallet</p><p><span><Check/></span>Loading to Lightning</p><p><span className="working"><Check/></span>Generating your keys</p></div>
         <Button className="demo-forward" onClick={() => setScreen("keys")}>Finish Creating <span>Continue →</span></Button>
         <div className="progress"><span>1<i>Send</i></span><span className="active">2<i>Create</i></span><span>3<i>Receive keys</i></span></div>
@@ -87,7 +87,7 @@ export default function Home() {
         <button className="back" onClick={() => setScreen("creating")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <p className="step">STEP 3 OF 3</p><h2>Your Hive is Ready</h2><p className="flow-copy">Save your keys. The private key gives access to your wallet; the public key lets others send to you.</p>
-        <div className="key-pair"><div className="key-card private"><div className="mini-qr"><QrCode/></div><b>PRIVATE KEY</b><small>Keep this secret. Save it somewhere safe.</small></div><div className="key-card public"><div className="mini-qr"><QrCode/></div><b>PUBLIC KEY</b><small>Share this to receive sats.</small></div></div>
+        <div className="key-pair"><div className="key-card private"><div className="mini-qr"><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></div><b>PRIVATE KEY</b><small>Keep this secret. Save it somewhere safe.</small></div><div className="key-card public"><div className="mini-qr"><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></div><b>PUBLIC KEY</b><small>Share this to receive sats.</small></div></div>
         <div className="cell-card"><span>Your Cell</span><strong>D-313 <Copy size={17}/></strong><small>This is your Hive identity.</small></div>
         <Button className="unlock" onClick={() => setScreen("home")}>I’ve Saved My Keys</Button>
         <p className="session-note">Demo keys only—nothing sensitive is being generated or stored.</p>

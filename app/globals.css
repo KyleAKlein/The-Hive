@@ -67,3 +67,13 @@ main.startup-stage{grid-template-columns:minmax(0,390px);gap:0;padding:32px 20px
 .join-screen .qr-frame{width:176px;height:184px;background:transparent;clip-path:none;filter:none;position:relative}
 .join-screen .qr-frame:before{display:none}
 .qr-hex-outline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+/* Rounded frames for creation and private/public key cards. */
+.rounded-hex-frame{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.creation-emblem{width:165px;height:173px;background:transparent;clip-path:none;position:relative;color:#d7ad58;filter:drop-shadow(0 0 18px #f5bd4320)}
+.creation-emblem:before{display:none}
+.key-card .mini-qr{height:auto;aspect-ratio:208/218;position:relative;clip-path:none;background:transparent;color:#d7ad58}
+.key-card.private .mini-qr{color:#f06868}
+.key-card.public .mini-qr{color:#5eb9e9}
+.mini-qr svg.rounded-hex-frame{width:100%;height:100%;color:inherit;stroke-width:initial}
+.mini-qr>svg:not(.rounded-hex-frame){position:relative;width:78px;height:78px;background:#f7f7f3;padding:5px;color:#050505}
