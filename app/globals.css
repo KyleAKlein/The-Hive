@@ -110,3 +110,14 @@ main.startup-stage{grid-template-columns:minmax(0,390px);gap:0;padding:32px 20px
 .home-screen .restart{margin-top:15px}
 .home-screen .custody-note{margin-top:28px}
 @media(prefers-reduced-motion:reduce){.home-actions button{transition:none}}
+
+/* Final hexagon audit: explicit frame layering and undistorted logos. */
+.choice-enter{margin-top:-13.6px}
+.hive-mark{display:block;width:96px;height:96px;color:#f4c76c;filter:none}
+.hive-mark.compact{width:32px;height:32px;color:#f4c76c}
+.creation-emblem .hive-mark{width:67px;height:67px;transform:none;filter:none;position:relative;z-index:1}
+.home-actions button .wallet-hex-frame,.cell-badge .wallet-hex-frame{z-index:0}
+.home-actions button>span,.home-actions button>svg:not(.wallet-hex-frame),.cell-badge>span,.cell-badge>svg:not(.wallet-hex-frame){position:relative;z-index:1}
+.home-actions{gap:12px;max-width:312px}
+.home-actions button{min-width:0;min-height:0;overflow:visible}
+@media(max-height:780px){.choice-enter{margin-top:-11.7px}}

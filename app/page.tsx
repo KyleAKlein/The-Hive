@@ -21,7 +21,7 @@ function FeesExplained() {
 }
 
 function HiveMark({ compact = false }: { compact?: boolean }) {
-  return <div className={`hive-mark ${compact ? "compact" : ""}`} aria-label="The Hive logo"><span className="hex h1"/><span className="hex h2"/><span className="hex h3"/></div>;
+  return <svg className={`hive-mark ${compact ? "compact" : ""}`} viewBox="0 0 104 104" fill="none" role="img" aria-label="The Hive logo"><g stroke="currentColor" strokeWidth="3.2" strokeLinejoin="round"><path d="M52 5 75 18v27L52 58 29 45V18z"/><path d="M29 45 52 58v27L29 98 6 85V58z"/><path d="M75 45 98 58v27L75 98 52 85V58z"/></g></svg>;
 }
 
 export default function Home() {
