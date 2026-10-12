@@ -77,3 +77,17 @@ main.startup-stage{grid-template-columns:minmax(0,390px);gap:0;padding:32px 20px
 .key-card.public .mini-qr{color:#5eb9e9}
 .mini-qr svg.rounded-hex-frame{width:100%;height:100%;color:inherit;stroke-width:initial}
 .mini-qr>svg:not(.rounded-hex-frame){position:relative;width:78px;height:78px;background:#f7f7f3;padding:5px;color:#050505}
+
+.key-card button.mini-qr{width:100%;border:0;padding:0;cursor:pointer;display:grid;place-items:center}
+.key-card button.mini-qr:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:20px}
+.key-detail-screen .step{margin-top:38px}
+.capture-key{width:100%;background:#10120f;border:1px solid #343730;border-radius:22px;padding:24px 18px;text-align:center}
+.key-detail-screen.private .capture-key{border-color:#f0686870}
+.key-detail-screen.public .capture-key{border-color:#5eb9e970}
+.capture-qr{width:210px;height:210px;max-width:100%;margin:0 auto 22px;background:#fffef8;display:grid;place-items:center;border-radius:12px;color:#050505}
+.capture-qr svg{width:88%;height:88%;stroke-width:1.4}
+.capture-label{display:block;font-size:12px;font-weight:650;letter-spacing:.12em;margin-bottom:12px}
+.private .capture-label{color:#f06868}.public .capture-label{color:#5eb9e9}
+.capture-key code{display:block;font-size:14px;line-height:1.65;overflow-wrap:anywhere;user-select:all;color:#f3f0e7}
+.capture-key p,.capture-help{font-size:12px;line-height:1.5;color:#aaa99f;margin:18px 0 0}
+.capture-help{text-align:center}

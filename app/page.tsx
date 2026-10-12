@@ -5,7 +5,7 @@ import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Send, ShieldCheck, Us
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home";
+type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key";
 
 function FeesExplained() {
   return <details className="fee-details">
@@ -87,10 +87,26 @@ export default function Home() {
         <button className="back" onClick={() => setScreen("creating")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <p className="step">STEP 3 OF 3</p><h2>Your Hive is Ready</h2><p className="flow-copy">Save your keys. The private key gives access to your wallet; the public key lets others send to you.</p>
-        <div className="key-pair"><div className="key-card private"><div className="mini-qr"><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></div><b>PRIVATE KEY</b><small>Keep this secret. Save it somewhere safe.</small></div><div className="key-card public"><div className="mini-qr"><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></div><b>PUBLIC KEY</b><small>Share this to receive sats.</small></div></div>
+        <div className="key-pair"><div className="key-card private"><button className="mini-qr" aria-label="Open private key" onClick={() => setScreen("private-key")}><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></button><b>PRIVATE KEY</b><small>Keep this secret. Save it somewhere safe.</small></div><div className="key-card public"><button className="mini-qr" aria-label="Open public key" onClick={() => setScreen("public-key")}><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></button><b>PUBLIC KEY</b><small>Share this to receive sats.</small></div></div>
         <div className="cell-card"><span>Your Cell</span><strong>D-313 <Copy size={17}/></strong><small>This is your Hive identity.</small></div>
         <Button className="unlock" onClick={() => setScreen("home")}>I’ve Saved My Keys</Button>
         <p className="session-note">Demo keys only—nothing sensitive is being generated or stored.</p>
+      </div>}
+
+      {(screen === "private-key" || screen === "public-key") && <div className={`flow-screen key-detail-screen ${screen === "private-key" ? "private" : "public"}`}>
+        <button className="back" onClick={() => setScreen("keys")} aria-label="Back to your keys"><ArrowLeft/></button>
+        <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
+        <p className="step">YOUR CELL · D-313</p>
+        <h2>{screen === "private-key" ? "Your Private Key" : "Your Public Key"}</h2>
+        <p className="flow-copy">{screen === "private-key" ? "Keep this private. Anyone with a real private key can access its wallet." : "Share your public key so others can find you."}</p>
+        <div className="capture-key">
+          <div className="capture-qr"><QrCode aria-label="Demo QR illustration, not a scannable wallet key"/></div>
+          <span className="capture-label">{screen === "private-key" ? "PRIVATE KEY" : "PUBLIC KEY"} · DEMO</span>
+          <code>{screen === "private-key" ? "DEMO-PRIVATE-KEY-D313-NOT-A-REAL-WALLET" : "DEMO-PUBLIC-KEY-D313-NOT-A-REAL-WALLET"}</code>
+          <p>Demo QR illustration · Not a real wallet key</p>
+        </div>
+        <p className="capture-help">Take a screenshot to save this demo key screen.</p>
+        <Button className="unlock" onClick={() => setScreen("keys")}>Back to My Keys</Button>
       </div>}
 
       {screen === "enter" && <div className="flow-screen enter-screen">
