@@ -30,11 +30,28 @@ export default function Home() {
 
   return <main className="startup-stage">
     <div className="ambient-grid" aria-hidden="true"><i/><i/><i/><i/><i/></div>
-    <section className={`phone-surface ${screen === "welcome" ? "original-entrance" : ""}`} aria-live="polite">
-      {screen === "welcome" && <div className="original-artwork">
-        <img src="/hive-original-welcome.png" alt="The Hive. People, payments, possibilities. Small Payments. A Bigger World." width="252" height="506" draggable={false}/>
-        <button className="artwork-action artwork-join" onClick={() => setScreen("join")} aria-label="Join The Hive — Send Bitcoin. Get Your Cell."/>
-        <button className="artwork-action artwork-enter" onClick={() => setScreen("enter")} aria-label="Enter The Hive — I already have a key."/>
+    <section className={`phone-surface ${screen === "welcome" ? "modern-entrance" : ""}`} aria-live="polite">
+      {screen === "welcome" && <div className="modern-welcome">
+        <svg className="welcome-honeycomb" viewBox="0 0 440 860" fill="none" aria-hidden="true">
+          <defs><linearGradient id="comb-gold" x1="0" y1="0" x2="440" y2="860" gradientUnits="userSpaceOnUse"><stop stopColor="#f6c768" stopOpacity=".25"/><stop offset=".5" stopColor="#bd8124" stopOpacity=".06"/><stop offset="1" stopColor="#f6c768" stopOpacity=".2"/></linearGradient></defs>
+          <g stroke="url(#comb-gold)" strokeWidth="1.2"><path d="M-18 30 34 0 86 30v60l-52 30-52-30zM86 30l52-30 52 30v60l-52 30-52-30zM-70 120l52-30 52 30v60l-52 30-52-30zM346 136l52-30 52 30v60l-52 30-52-30zM398 226l52-30 52 30v60l-52 30-52-30zM-48 580l52-30 52 30v60L4 670l-52-30zM346 640l52-30 52 30v60l-52 30-52-30zM294 730l52-30 52 30v60l-52 30-52-30zM398 730l52-30 52 30v60l-52 30-52-30z"/></g>
+        </svg>
+        <header className="welcome-brand">
+          <svg className="welcome-logo" viewBox="0 0 104 104" fill="none" aria-hidden="true"><g stroke="currentColor" strokeWidth="3.2" strokeLinejoin="round"><path d="M52 5 75 18v27L52 58 29 45V18z"/><path d="M29 45 52 58v27L29 98 6 85V58z"/><path d="M75 45 98 58v27L75 98 52 85V58z"/></g></svg>
+          <h1>THE HIVE</h1>
+          <p>PEOPLE <span>•</span> PAYMENTS <span>•</span> POSSIBILITIES</p>
+        </header>
+        <p className="welcome-promise">Small Payments.<br/><span>A Bigger World.</span></p>
+        <div className="welcome-choices">
+          <button className="welcome-choice choice-join" onClick={() => setScreen("join")}>
+            <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><defs><linearGradient id="join-gold" x1="30" y1="15" x2="190" y2="210" gradientUnits="userSpaceOnUse"><stop stopColor="#ffe29a"/><stop offset=".52" stopColor="#f7c65e"/><stop offset="1" stopColor="#dca135"/></linearGradient></defs><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="url(#join-gold)" stroke="#ffdf8c" strokeWidth="1.2"/></svg>
+            <span><strong>JOIN<br/>THE HIVE</strong><small>Send Bitcoin.<br/>Get Your Cell.</small></span>
+          </button>
+          <button className="welcome-choice choice-enter" onClick={() => setScreen("enter")}>
+            <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0d0a" fillOpacity=".85" stroke="#d7ad58" strokeWidth="1.5"/></svg>
+            <span><strong>ENTER<br/>THE HIVE</strong><small>I already<br/>have a key.</small></span>
+          </button>
+        </div>
       </div>}
 
       {screen === "join" && <div className="flow-screen join-screen">
