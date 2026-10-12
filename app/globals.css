@@ -146,3 +146,8 @@ main.startup-stage{grid-template-columns:minmax(0,390px);gap:0;padding:32px 20px
 .wallet-grid-toolbar{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:24px;font-size:14px;color:#d9d7cd}.wallet-grid-toolbar button{padding:9px 16px;border:1px solid #514122;border-radius:10px;background:#17180f;color:#f5ce79;cursor:pointer}
 .arrange-hint{font-size:12px;line-height:1.5;color:#aaa99f;text-align:center;margin:12px 0 0}
 .bucket-grid{margin-top:16px}.bucket-grid.is-arranging{gap:8px}.is-arranging .bucket-tile{touch-action:none;user-select:none;cursor:grab}.is-arranging .bucket-tile.is-dragged{opacity:.5;cursor:grabbing}.bucket-tile.drop-target{color:#fff1b6;filter:drop-shadow(0 0 9px #f5ce7950)}.arrange-controls{width:100%}
+/* Hub actions form a staggered honeycomb, with adjoining edges. */
+.home-actions{width:80%;max-width:260px;gap:0;transform:translateX(-12.5%);margin-bottom:4px}
+.home-actions button:nth-child(n+3){transform:translateX(50%);margin-top:-26.2755%}
+.home-actions button:hover{transform:none}
+.home-actions button:nth-child(n+3):hover{transform:translateX(50%)}
