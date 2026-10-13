@@ -206,20 +206,14 @@ export default function Home() {
         <p className="session-note">Demo keys only—nothing sensitive is being generated or stored.</p>
       </div>}
 
-      {(screen === "private-key" || screen === "public-key") && <div className={`flow-screen key-detail-screen ${screen === "private-key" ? "private" : "public"}`}>
+      {(screen === "private-key" || screen === "public-key") && <div className={`flow-screen key-detail-screen clean-key-screen ${screen === "private-key" ? "private" : "public"}`}>
         <button className="back" onClick={() => setScreen("keys")} aria-label="Back to your keys"><ArrowLeft/></button>
-        <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">YOUR CELL · D-313</p>
-        <h2>{screen === "private-key" ? "Your Private Key" : "Your Public Key"}</h2>
-        <p className="flow-copy">{screen === "private-key" ? "Keep this private. Anyone with a real private key can access its wallet." : "Share your public key so others can find you."}</p>
-        <div className="capture-key">
-          <div className="capture-qr"><QrCode aria-label="Demo QR illustration, not a scannable wallet key"/></div>
-          <span className="capture-label">{screen === "private-key" ? "PRIVATE KEY" : "PUBLIC KEY"} · DEMO</span>
-          <code>{screen === "private-key" ? "DEMO-PRIVATE-KEY-D313-NOT-A-REAL-WALLET" : "DEMO-PUBLIC-KEY-D313-NOT-A-REAL-WALLET"}</code>
-          <p>Demo QR illustration · Not a real wallet key</p>
+        <h2>{screen === "private-key" ? "Private key" : "Public key"}</h2>
+        <div className="key-snapshot-hex">
+          <svg className="key-snapshot-outline" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090c08" stroke="currentColor" strokeWidth="5"/></svg>
+          <div className="key-snapshot-qr"><QrCode aria-label="Placeholder QR illustration"/></div>
         </div>
-        <p className="capture-help">Take a screenshot to save this demo key screen.</p>
-        <Button className="unlock" onClick={() => setScreen("keys")}>Back to My Keys</Button>
+        <code className="key-snapshot-text">{screen === "private-key" ? "DEMO-PRIVATE-KEY-D313-NOT-A-REAL-WALLET" : "DEMO-PUBLIC-KEY-D313-NOT-A-REAL-WALLET"}</code>
       </div>}
 
       {screen === "enter" && <div className="flow-screen enter-screen">
