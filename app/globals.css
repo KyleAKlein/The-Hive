@@ -178,3 +178,8 @@ main.startup-stage{grid-template-columns:minmax(0,390px);gap:0;padding:32px 20px
 .key-snapshot-text{display:block;text-align:center;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:16px;line-height:1.7;letter-spacing:.01em;color:#f2f1e7;overflow-wrap:anywhere;user-select:all;width:100%;max-width:300px;margin-top:35px}
 .key-card.public .mini-qr,.key-card.public b{color:#59c889}
 @media(max-width:850px){.clean-key-screen{min-height:100svh;padding-top:72px}.clean-key-screen .back{top:25px}}
+
+.keys-screen .key-save-instruction{font-size:15px;color:#d9d7cd;margin:15px 0 0}
+.key-save-arrows{width:100%;height:42px;margin:6px 0 2px;color:#d7ad58}
+.key-save-arrows svg{width:100%;height:100%}
+.keys-screen .key-card small{font-size:12px;line-height:1.45;margin:8px auto 0;max-width:145px;color:#b9baae}
