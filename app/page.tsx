@@ -29,6 +29,19 @@ function HexFrame() {
   return <svg className="send-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#10140c" stroke="currentColor" strokeWidth="1.8"/></svg>;
 }
 
+type HoneyIconKind = "dot" | "drop" | "cell" | "four" | "dipper" | "comb";
+function HoneyAmountIcon({kind}: {kind: HoneyIconKind}) {
+  const cell=(x:number,y:number,r:number,key:number)=><path key={key} d={`M${x} ${y-r}l${r*.866} ${r*.5}v${r}l${-r*.866} ${r*.5}l${-r*.866} ${-r*.5}v${-r}Z`}/>;
+  return <svg className={`honey-amount-icon honey-${kind}`} viewBox="0 0 40 40" fill="none" aria-hidden="true">
+    {kind==="dot"&&<><circle cx="20" cy="22" r="6" fill="currentColor" stroke="none"/><path d="M18 19h1" stroke="#fff0c9" strokeWidth="2" strokeLinecap="round"/></>}
+    {kind==="drop"&&<><path d="M20 6c-2 6-10 13-10 20a10 10 0 0020 0C30 19 22 12 20 6Z" fill="currentColor" stroke="none"/><path d="M15 24c-1 3 0 5 2 6" stroke="#fff0c9" strokeWidth="2" strokeLinecap="round"/></>}
+    {kind==="cell"&&<g stroke="currentColor" strokeWidth="2" fill="currentColor" fillOpacity=".22">{cell(20,20,13,0)}<path d="M14 17v7l6 3" fill="none" stroke="#edce91" strokeWidth="1.5"/></g>}
+    {kind==="four"&&<g stroke="currentColor" strokeWidth="1.7" fill="currentColor" fillOpacity=".2">{[[13,12],[26,19.5],[13,27],[26,34.5]].map(([x,y],i)=>cell(x,y-3,7.5,i))}</g>}
+    {kind==="dipper"&&<g transform="rotate(-38 20 20)" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v14"/><rect x="12" y="5" width="16" height="16" rx="5" fill="currentColor" fillOpacity=".2"/><path d="M13 10h14M12 15h16"/><path d="M27 22c0 3 3 5 3 7a3 3 0 01-6 0c0-2 3-4 3-7Z" fill="currentColor" stroke="none"/></g>}
+    {kind==="comb"&&<g stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity=".25">{[[20,20],[20,8],[30.4,14],[30.4,26],[20,32],[9.6,26],[9.6,14]].map(([x,y],i)=>cell(x,y,6,i))}</g>}
+  </svg>;
+}
+
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [key, setKey] = useState("");
@@ -263,7 +276,7 @@ export default function Home() {
             {destinationMode==="qr"?<><QrCode className="scan-design-icon"/><button className="scan-demo-action" onClick={()=>{setRecipient("A-101");setNotice("Demo scan selected A-101. Camera scanning comes later.");}}>Preview scan</button><small>{recipient || "Scan preview"}</small></>:destinationMode==="public"?<textarea id="send-destination" aria-label="Recipient public key" value={recipient} onChange={e=>{setRecipient(e.target.value);setNotice("");}} placeholder="Paste public key" rows={3}/>:<input id="send-destination" value={recipient} onChange={e=>{setRecipient(e.target.value);setNotice("");}} placeholder="A-101" autoCapitalize="characters"/>}
           </div></div>
           <div className="send-amount"><HexFrame/><div className="send-hex-content"><div className="send-amount-heading"><label htmlFor="send-amount">Amount</label><button className="send-unit-swap" onClick={swapSendUnit} aria-label={`Switch amount to ${sendUnit==="usd"?"sats":"dollars"}`}><ArrowUpDown size={12}/></button></div><div className="amount-input-line"><span>{sendUnit==="usd"?"$":""}</span><input id="send-amount" inputMode={sendUnit==="usd"?"decimal":"numeric"} placeholder={sendUnit==="usd"?"0.00":"0"} value={sendInput} onChange={e=>setSendValue(e.target.value)}/></div><small>{sendUnit==="usd"?`${Number(amount||0).toLocaleString()} sats`:formatDollars(Number(amount||0))}</small></div></div>
-          {[{value:"0.02",label:"2¢"},{value:"0.10",label:"10¢"},{value:"0.25",label:"25¢"},{value:"1.00",label:"$1"},{value:"6.00",label:"$6"}].map((preset,i)=><button key={preset.value} className={`send-preset preset-${i} ${Number(amount)===Math.round(Number(preset.value)*DEMO_SATS_PER_DOLLAR)?"chosen":""}`} onClick={()=>{setSendUnit("usd");setSendValue(preset.value,"usd");}} aria-label={`Set amount to ${preset.label}`}><HexFrame/><span>{preset.label}</span></button>)}
+          {[{value:"0.02",label:"2¢",icon:"dot",name:"Honey dot"},{value:"0.10",label:"10¢",icon:"drop",name:"Honey drop"},{value:"0.25",label:"25¢",icon:"cell",name:"Honey cell"},{value:"1.00",label:"$1",icon:"four",name:"Four honey cells"},{value:"6.00",label:"$6",icon:"dipper",name:"Honey dipper"},{value:"24.00",label:"$24",icon:"comb",name:"Honeycomb chunk"}].map((preset,i)=><button key={preset.value} className={`send-preset preset-${i} ${Number(amount)===Math.round(Number(preset.value)*DEMO_SATS_PER_DOLLAR)?"chosen":""}`} onClick={()=>{setSendUnit("usd");setSendValue(preset.value,"usd");}} aria-label={`${preset.name}: set amount to ${preset.label}`} title={`${preset.name} · ${preset.label}`}><HexFrame/><span><HoneyAmountIcon kind={preset.icon as HoneyIconKind}/><small>{preset.label}</small></span></button>)}
         </div>
         {recipient && !validRecipient && <p className="send-validation">{destinationMode==="public"?"Paste the full public key for this demo.":"Use a Cell such as A-101, other than your own."}</p>}
         {sendInput && !validAmount && <p className="send-validation">Enter a positive amount{sendUnit==="usd"?" with up to two decimal places":" in whole sats"}.</p>}
