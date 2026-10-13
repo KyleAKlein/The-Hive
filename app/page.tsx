@@ -272,7 +272,7 @@ export default function Home() {
         <p className="send-demo-note">Demo · $1 = 1,000 sats · QR scanning is a preview</p>
       </div>}
 
-      {<div className="flow-screen payment-screen">
+      {screen === "receive" && <div className="flow-screen payment-screen">
         <button className="back" onClick={() => setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <p className="step">DEMO WALLET · D-313</p><h2>Receive sats</h2>
