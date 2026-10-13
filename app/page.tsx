@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { allocateDeposit } from "@/lib/bucket-math";
-import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Pencil, Plus, Send, ShieldCheck, Users, Zap } from "lucide-react";
+import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Pencil, Plus, ArrowUpDown, Send, ShieldCheck, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -23,6 +23,10 @@ function FeesExplained() {
 
 function HiveMark({ compact = false }: { compact?: boolean }) {
   return <svg className={`hive-mark ${compact ? "compact" : ""}`} viewBox="0 0 104 104" fill="none" role="img" aria-label="The Hive logo"><g stroke="currentColor" strokeWidth="3.2" strokeLinejoin="round"><path d="M52 5 75 18v27L52 58 29 45V18z"/><path d="M29 45 52 58v27L29 98 6 85V58z"/><path d="M75 45 98 58v27L75 98 52 85V58z"/></g></svg>;
+}
+
+function HexFrame() {
+  return <svg className="send-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#10140c" stroke="currentColor" strokeWidth="1.8"/></svg>;
 }
 
 export default function Home() {
@@ -132,11 +136,21 @@ export default function Home() {
   };
   const sats = Number(amount);
   const validAmount = /^\d+$/.test(amount) && Number.isSafeInteger(sats) && sats > 0 && sats <= 100000000;
-  const validRecipient = /^[A-Z]-\d{3,6}$/.test(recipient.trim().toUpperCase()) && recipient.trim().toUpperCase() !== "D-313";
-  const openPayment = (next: Screen) => { setAmount(""); setRecipient(""); setNotice(""); setScreen(next); };
+  const [destinationMode,setDestinationMode]=useState<"cell"|"public"|"qr">("cell");
+  const [sendUnit,setSendUnit]=useState<"usd"|"sats">("usd");
+  const [sendInput,setSendInput]=useState("");
+  const setSendValue=(value:string,unit:"usd"|"sats"=sendUnit)=>{
+    setSendInput(value);setNotice("");
+    const valid=unit==="usd"?/^\d+(\.\d{1,2})?$/.test(value):/^\d+$/.test(value);
+    const n=unit==="usd"?Math.round(Number(value)*DEMO_SATS_PER_DOLLAR):Number(value);
+    setAmount(valid&&Number.isSafeInteger(n)&&n>0?String(n):"");
+  };
+  const swapSendUnit=()=>{const next=sendUnit==="usd"?"sats":"usd";setSendUnit(next);setSendValue(amount ? next==="sats"?amount:(Number(amount)/DEMO_SATS_PER_DOLLAR).toFixed(2) : "",next);};
+  const validRecipient = destinationMode==="public" ? recipient.trim().length>=8 : /^[A-Z]-\d{3,6}$/.test(recipient.trim().toUpperCase()) && recipient.trim().toUpperCase() !== "D-313";
+  const openPayment = (next: Screen) => { setAmount(""); setRecipient(""); setNotice(""); setSendInput(""); setSendUnit("usd"); setDestinationMode("cell"); setScreen(next); };
   const recordPayment = (kind: "sent" | "received") => {
     if (!validAmount || (kind === "sent" && (!validRecipient || sats > balance))) return;
-    const cell = kind === "sent" ? recipient.trim().toUpperCase() : "Demo funding";
+    const cell = kind === "sent" ? destinationMode==="public" ? recipient.trim() : recipient.trim().toUpperCase() : "Demo funding";
     if (kind === "received") {
       const split=allocateDeposit(sats,buckets);
       setBalance(value => value+split.spendable);
@@ -145,7 +159,7 @@ export default function Home() {
     } else setBalance(value => value-sats);
     setTransactions(value => [{id: Date.now(), kind, cell, amount: sats, time: new Date().toLocaleString()}, ...value]);
     setNotice(kind === "sent" ? `Sent ${sats.toLocaleString()} demo sats to ${cell}.` : `Received ${sats.toLocaleString()} demo sats. ${buckets.some(b=>b.percent>0) ? "Your deposit split was applied." : ""}`);
-    setAmount("");
+    setAmount("");setSendInput("");
   };
 
   return <main className="startup-stage">
@@ -234,21 +248,41 @@ export default function Home() {
         <p className="session-note"><Zap size={15}/> Your key is used only for this session and is never saved.</p>
       </div>}
 
-      {(screen === "send" || screen === "receive") && <div className="flow-screen payment-screen">
+      {screen === "send" && <div className="flow-screen hex-send-screen">
+        <button className="back" onClick={()=>setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button>
+        <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
+        <div className="send-cell-top"><HexFrame/><span><small>MY CELL</small><b>D-313</b><strong>{formatDollars(balance)}</strong><small>{balance.toLocaleString()} sats</small></span></div>
+        <h2>Send</h2>
+        <div className="send-honeycomb">
+          <button className="send-method method-upper" onClick={()=>{setDestinationMode(destinationMode==="qr"?"cell":"qr");setRecipient("");setNotice("");}}><HexFrame/><span>{destinationMode==="qr"?<><Users/><small>Cell number</small></>:<><QrCode/><small>QR code</small></>}</span></button>
+          <button className="send-method method-lower" onClick={()=>{setDestinationMode(destinationMode==="public"?"cell":"public");setRecipient("");setNotice("");}}><HexFrame/><span>{destinationMode==="public"?<><Users/><small>Cell number</small></>:<><KeyRound/><small>Public key</small></>}</span></button>
+          <div className="send-destination"><HexFrame/><div className="send-hex-content">
+            <label htmlFor="send-destination">{destinationMode==="cell"?"Cell number":destinationMode==="public"?"Public key":"Scan QR code"}</label>
+            {destinationMode==="qr"?<><QrCode className="scan-design-icon"/><button className="scan-demo-action" onClick={()=>{setRecipient("A-101");setNotice("Demo scan selected A-101. Camera scanning comes later.");}}>Preview scan</button><small>{recipient || "Scan preview"}</small></>:destinationMode==="public"?<textarea id="send-destination" aria-label="Recipient public key" value={recipient} onChange={e=>{setRecipient(e.target.value);setNotice("");}} placeholder="Paste public key" rows={3}/>:<input id="send-destination" value={recipient} onChange={e=>{setRecipient(e.target.value);setNotice("");}} placeholder="A-101" autoCapitalize="characters"/>}
+          </div></div>
+          <div className="send-amount"><HexFrame/><div className="send-hex-content"><label htmlFor="send-amount">Amount</label><div className="amount-input-line"><span>{sendUnit==="usd"?"$":""}</span><input id="send-amount" inputMode={sendUnit==="usd"?"decimal":"numeric"} placeholder={sendUnit==="usd"?"0.00":"0"} value={sendInput} onChange={e=>setSendValue(e.target.value)}/></div><small>{sendUnit==="usd"?`${Number(amount||0).toLocaleString()} sats`:formatDollars(Number(amount||0))}</small><button className="send-unit-swap" onClick={swapSendUnit} aria-label={`Switch amount to ${sendUnit==="usd"?"sats":"dollars"}`}><ArrowUpDown size={13}/>{sendUnit==="usd"?"USD → sats":"sats → USD"}</button></div></div>
+          {[{value:"0.02",label:"2¢"},{value:"0.10",label:"10¢"},{value:"0.25",label:"25¢"},{value:"1.00",label:"$1"},{value:"6.00",label:"$6"}].map((preset,i)=><button key={preset.value} className={`send-preset preset-${i} ${Number(amount)===Math.round(Number(preset.value)*DEMO_SATS_PER_DOLLAR)?"chosen":""}`} onClick={()=>{setSendUnit("usd");setSendValue(preset.value,"usd");}} aria-label={`Set amount to ${preset.label}`}><HexFrame/><span>{preset.label}</span></button>)}
+        </div>
+        {recipient && !validRecipient && <p className="send-validation">{destinationMode==="public"?"Paste the full public key for this demo.":"Use a Cell such as A-101, other than your own."}</p>}
+        {sendInput && !validAmount && <p className="send-validation">Enter a positive amount{sendUnit==="usd"?" with up to two decimal places":" in whole sats"}.</p>}
+        {validAmount&&sats>balance&&<p className="send-validation">Not enough spendable sats.</p>}
+        <Button className="send-submit" disabled={!validAmount||!validRecipient||sats>balance} onClick={()=>recordPayment("sent")}>Send {validAmount?formatDollars(sats):"sats"}</Button>
+        {notice&&<p className="send-result" role="status">{notice}</p>}
+        <p className="send-demo-note">Demo · $1 = 1,000 sats · QR scanning is a preview</p>
+      </div>}
+
+      {<div className="flow-screen payment-screen">
         <button className="back" onClick={() => setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">DEMO WALLET · D-313</p><h2>{screen === "send" ? "Send sats" : "Receive sats"}</h2>
-        <p className="flow-copy">{screen === "send" ? "Send a little love to another Cell." : "Create a demo request or add simulated funds."}</p>
+        <p className="step">DEMO WALLET · D-313</p><h2>Receive sats</h2>
+        <p className="flow-copy">Create a demo request or add simulated funds.</p>
         <div className="payment-panel">
           <p className="available-balance">Available: {balance.toLocaleString()} demo sats</p>
-          {screen === "send" && <label className="payment-field">Recipient Cell<Input value={recipient} onChange={e => {setRecipient(e.target.value);setNotice("");}} placeholder="A-101" autoCapitalize="characters"/></label>}
-          {screen === "receive" && <div className="receive-cell"><span>Your Cell</span><strong>D-313</strong><small>Share this Cell with the sender.</small></div>}
+          {<div className="receive-cell"><span>Your Cell</span><strong>D-313</strong><small>Share this Cell with the sender.</small></div>}
           <label className="payment-field">Amount in sats<Input inputMode="numeric" value={amount} onChange={e => {setAmount(e.target.value);setNotice("");}} placeholder="500"/></label>
           {amount && !validAmount && <p className="payment-error">Enter a whole number from 1 to 100,000,000 sats.</p>}
-          {screen === "send" && recipient && !validRecipient && <p className="payment-error">Use a Cell such as A-101, other than your own.</p>}
-          {screen === "send" && validAmount && sats > balance && <p className="payment-error">Your demo balance is too low.</p>}
-          {screen === "receive" && validAmount && <div className="demo-request"><b>Demo payment request</b><code>HIVE-DEMO:D-313:{sats}</code><small>Text request only · Not a Lightning invoice</small></div>}
-          <Button className="unlock" disabled={!validAmount || (screen === "send" && (!validRecipient || sats > balance))} onClick={() => recordPayment(screen === "send" ? "sent" : "received")}>{screen === "send" ? "Send demo sats" : "Simulate received payment"}</Button>
+          {validAmount && <div className="demo-request"><b>Demo payment request</b><code>HIVE-DEMO:D-313:{sats}</code><small>Text request only · Not a Lightning invoice</small></div>}
+          <Button className="unlock" disabled={!validAmount} onClick={() => recordPayment("received")}>Simulate received payment</Button>
           {notice && <p className="payment-success" role="status"><Check size={18}/>{notice}</p>}
         </div>
         <p className="session-note">Demo only. No real bitcoin moves. Demo balance and history are saved on this browser.</p>

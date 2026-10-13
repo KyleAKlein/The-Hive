@@ -21,3 +21,8 @@
 - Tap a bucket to deposit its preset; pencil opens label/deposit editing. Hold to drag or use Arrange; drop into empty slots or swap occupied positions.
 - Dollar display currently uses a labeled demo rate of 1,000 sats per USD, not live pricing. Preserve precise sats as balances.
 - Keep deposit splits and deletion inside compact advanced settings, rather than bulky cards on the canvas.
+
+## Send screen
+- Cell tile with spendable balance at top; destination Cell input hexagon swaps with Public key or QR preview hexagons on its left.
+- Amount hexagon on right toggles USD/sats and has surrounding 2¢, 10¢, 25¢, $1, $6 presets. User chose amount labels until exact preset icons are supplied.
+- Public key routing and QR scanning remain design/demo behavior; no real wallet key validation or camera scanner is claimed.
