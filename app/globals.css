@@ -329,3 +329,11 @@ main.startup-stage{min-height:100svh;align-items:start;overflow:clip}
 .hex-send-screen .send-preset.chosen>span{color:#6c4513}
 .hex-send-screen .send-preset.chosen>span>small{color:#302819}
 @media(max-width:360px){.hex-send-screen .send-preset .honey-amount-icon{width:24px;height:24px}.hex-send-screen .send-preset>span>small{font-size:8px}}
+
+/* Denominations increase clockwise from the upper-right tile. */
+.hex-send-screen .preset-0{left:68.5%;top:6.6cqw}
+.hex-send-screen .preset-1{left:81%;top:26.6cqw}
+.hex-send-screen .preset-2{left:68.5%;top:46.6cqw}
+.hex-send-screen .preset-3{left:45.5%;top:46.6cqw}
+.hex-send-screen .preset-4{left:45.5%;top:6.6cqw}
+.hex-send-screen .preset-5{left:57%;top:-13.4cqw}
