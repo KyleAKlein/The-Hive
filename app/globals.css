@@ -211,3 +211,35 @@ main.startup-stage{min-height:100svh;align-items:start;overflow:clip}
 .home-screen{min-height:100svh}
 .home-screen .custody-note{margin-bottom:0}
 @media(max-width:850px){main.startup-stage{align-items:flex-start}.startup-stage .phone-surface{border:0;border-radius:0;min-height:0;background:#080b07}}
+/* Send layout uses shared edge normals rather than scattered positions. */
+.send-honeycomb{max-width:350px;aspect-ratio:1/1.02;margin-top:12px}
+.send-destination,.send-amount{width:36%;top:37%}
+.send-destination{left:14%}
+.send-amount{left:62%}
+.send-method,.send-preset{width:20%}
+/* Left satellites sit on the destination's upper/lower-left edge normals. */
+.method-upper{left:0%;top:24%}
+.method-lower{left:0%;top:67%}
+/* Amount satellites follow its five available edge normals. */
+.preset-0{left:59%;top:10%}
+.preset-1{left:80%;top:10%}
+.preset-2{left:80%;top:76%}
+.preset-3{left:59%;top:76%}
+.preset-4{left:39%;top:46%}
+.send-hex-content{padding:19px 10px;gap:6px}
+.send-hex-content label{font-size:11px}
+.send-destination input{font-size:18px}
+.amount-input-line{font-size:18px}
+.amount-input-line input{font-size:20px}
+.send-hex-content small{font-size:9px}
+.send-unit-swap{font-size:8px;gap:3px}
+.send-submit{margin-top:14px}
+.send-honeycomb{aspect-ratio:1/1}
+.send-destination,.send-amount{width:32%;top:38.2%}
+.send-destination{left:9%}.send-amount{left:49%}
+.send-method,.send-preset{width:16%}
+.method-upper{left:5.5%;top:26.6%}.method-lower{left:5.5%;top:66.6%}
+.preset-0{left:45.5%;top:26.6%}.preset-1{left:68.5%;top:26.6%}
+.preset-2{left:81%;top:46.6%}.preset-3{left:68.5%;top:66.6%}.preset-4{left:45.5%;top:66.6%}
+.send-method small{font-size:8px}.send-method>span svg{width:15px;height:15px}
+.send-preset>span{font-size:13px}
