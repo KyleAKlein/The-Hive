@@ -337,3 +337,16 @@ main.startup-stage{min-height:100svh;align-items:start;overflow:clip}
 .hex-send-screen .preset-3{left:45.5%;top:46.6cqw}
 .hex-send-screen .preset-4{left:45.5%;top:6.6cqw}
 .hex-send-screen .preset-5{left:57%;top:-13.4cqw}
+
+/* Complete six-sided amount ring, with room for the destination. */
+.hex-send-screen .send-honeycomb{margin-top:22px;aspect-ratio:1/.64}
+.hex-send-screen .send-destination{left:5%;width:30%;top:18.2cqw}
+.hex-send-screen .send-amount{left:54%;width:30%;top:18.2cqw}
+.hex-send-screen .method-upper{left:.5%;top:6.6cqw}
+.hex-send-screen .method-lower{left:.5%;top:44.4cqw}
+.hex-send-screen .preset-0{left:72%;top:6.6cqw}
+.hex-send-screen .preset-1{left:83%;top:25.5cqw}
+.hex-send-screen .preset-2{left:72%;top:44.4cqw}
+.hex-send-screen .preset-3{left:50%;top:44.4cqw}
+.hex-send-screen .preset-4{left:39%;top:25.5cqw}
+.hex-send-screen .preset-5{left:50%;top:6.6cqw}
