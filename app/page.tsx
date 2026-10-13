@@ -32,6 +32,7 @@ function HexFrame() {
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [key, setKey] = useState("");
+  useEffect(()=>{window.scrollTo({top:0,left:0,behavior:"instant"});},[screen]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copyError, setCopyError] = useState("");
   const copyKey = async (kind:"private" | "public") => {
