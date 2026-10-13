@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { allocateDeposit } from "@/lib/bucket-math";
-import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Send, ShieldCheck, Users, Zap } from "lucide-react";
+import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Pencil, Plus, Send, ShieldCheck, Users, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -34,7 +34,7 @@ export default function Home() {
   const [amount, setAmount] = useState("");
   const [notice, setNotice] = useState("");
   const [transactions, setTransactions] = useState<{id: number; kind: "sent" | "received" | "allocated" | "released"; cell: string; amount: number; time: string}[]>([]);
-  const [buckets, setBuckets] = useState<{id:number; name:string; kind:"habit" | "savings"; balance:number; percent:number; reward:number; completions:number}[]>([]);
+  const [buckets, setBuckets] = useState<{id:number; name:string; kind:"habit" | "savings"; balance:number; percent:number; reward:number; completions:number; slot?:number}[]>([]);
   const [bucketName, setBucketName] = useState("");
   const [bucketKind, setBucketKind] = useState<"habit" | "savings">("savings");
   const [selectedBucket, setSelectedBucket] = useState<number | null>(null);
@@ -66,6 +66,42 @@ export default function Home() {
     const [item]=next.splice(source,1);next.splice(target,0,item);return next;
   });
   const cancelHold = ()=>{if(holdTimer.current)clearTimeout(holdTimer.current);holdTimer.current=null;};
+  const DEMO_SATS_PER_DOLLAR = 1000;
+  const [editBucketId, setEditBucketId] = useState<number | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  const [editDeposit, setEditDeposit] = useState("1.00");
+  const [depositUnit, setDepositUnit] = useState<"usd" | "sats">("usd");
+  const [editSplit, setEditSplit] = useState("0");
+  const [ghost, setGhost] = useState<{x:number;y:number;name:string} | null>(null);
+  const [targetSlot, setTargetSlot] = useState<number | null>(null);
+  const pointerStart = useRef<{x:number;y:number} | null>(null);
+  const dragId = useRef<number | null>(null);
+  const positions = new Map<number,number>();
+  buckets.forEach((b,i)=>{let slot=Number.isInteger(b.slot)&&b.slot!>=0&&b.slot!<100 ? b.slot! : i;while([...positions.values()].includes(slot))slot++;positions.set(b.id,slot);});
+  let nextSlot=0;while([...positions.values()].includes(nextSlot))nextSlot++;
+  const slotCount=Math.max(8,nextSlot+1,...[...positions.values()].map(slot=>slot+3));
+  const formatDollars=(value:number)=>`$${(value/DEMO_SATS_PER_DOLLAR).toFixed(2)}`;
+  const makeTile = ()=>{
+    const id=Date.now();let n=buckets.length+1;while(buckets.some(b=>b.name===`Bucket ${n}`))n++;
+    setBuckets(old=>[...old,{id,name:`Bucket ${n}`,kind:"savings",balance:0,percent:0,reward:1000,completions:0,slot:nextSlot}]);
+    setBucketNotice("New bucket added. Tap its pencil to name it.");
+  };
+  const quickDeposit = (id:number)=>{
+    const bucket=buckets.find(b=>b.id===id);if(!bucket)return;
+    if(bucket.reward<=0||bucket.reward>balance){setBucketNotice("Not enough spendable sats for this deposit.");return;}
+    setBalance(old=>old-bucket.reward);
+    setBuckets(old=>old.map(b=>b.id===id?{...b,balance:b.balance+b.reward,completions:b.completions+(b.kind==="habit"?1:0)}:b));
+    addHistory("allocated",bucket.name,bucket.reward);
+    setBucketNotice(`${formatDollars(bucket.reward)} set aside in ${bucket.name}.`);
+  };
+  const placeTile = (id:number,slot:number)=>{
+    const previous=positions.get(id);const occupant=buckets.find(b=>positions.get(b.id)===slot);
+    setBuckets(old=>old.map(b=>({...b,slot:b.id===id?slot:occupant?.id===b.id?previous:positions.get(b.id)})));
+  };
+  const openTileEditor = (id:number)=>{const b=buckets.find(b=>b.id===id);if(!b)return;setEditBucketId(id);setEditLabel(b.name);setEditDeposit((b.reward/DEMO_SATS_PER_DOLLAR).toFixed(2));setDepositUnit("usd");setEditSplit(String(b.percent));setBucketAmount("");setBucketNotice("");};
+  const edited=buckets.find(b=>b.id===editBucketId);
+  const editSats=depositUnit==="usd"?Math.round(Number(editDeposit)*DEMO_SATS_PER_DOLLAR):Number(editDeposit);
+  const validEdit=!!editLabel.trim() && !buckets.some(b=>b.id!==editBucketId&&b.name.toLowerCase()===editLabel.trim().toLowerCase()) && (depositUnit==="usd"?/^\d+(\.\d{1,2})?$/.test(editDeposit):/^\d+$/.test(editDeposit)) && Number.isSafeInteger(editSats)&&editSats>0&&editSats<=100000000 && /^\d+$/.test(editSplit)&&Number(editSplit)<=100 && buckets.filter(b=>b.id!==editBucketId).reduce((sum,b)=>sum+b.percent,0)+Number(editSplit)<=100;
   const reserved = buckets.reduce((total,bucket) => total+bucket.balance,0);
   const totalBalance = balance+reserved;
   const selected = buckets.find(bucket => bucket.id === selectedBucket);
@@ -223,31 +259,56 @@ export default function Home() {
         <p className="session-note">Simulated transactions · Saved on this browser</p>
       </div>}
 
-      {screen === "buckets" && <div className="flow-screen buckets-screen">
-        <button className="back" onClick={() => setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button>
+      {screen === "buckets" && <div className="flow-screen tile-wallet-screen">
+        <button className="back" onClick={()=>{setScreen("home");setEditBucketId(null);}} aria-label="Back to hub"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">ONE WALLET · YOUR PRIORITIES</p><h2>My Wallet</h2><p className="flow-copy">Small steps. Something to show for them.</p>
-        <div className="bucket-summary"><div><small>Spendable</small><b>{balance.toLocaleString()}</b></div><div><small>Set aside</small><b>{reserved.toLocaleString()}</b></div><span>{totalBalance.toLocaleString()} demo sats in your wallet</span></div>
-        <div className="wallet-grid-toolbar"><span>Wallet buckets</span><button onClick={()=>{setArranging(!arranging);setDraggedBucket(null);setDropBucket(null);}}>{arranging ? "Done" : "Arrange"}</button></div>
-        <p className="arrange-hint">{arranging ? "Drag a tile to another position. Or select one and use the arrow buttons." : "Tap a bucket to open it. Hold a tile to arrange."}</p>
-        <div className={`bucket-grid ${arranging ? "is-arranging" : ""}`}>{buckets.map(bucket => <button className={`bucket-tile ${selectedBucket === bucket.id ? "selected" : ""} ${draggedBucket===bucket.id ? "is-dragged" : ""} ${dropBucket===bucket.id ? "drop-target" : ""}`} key={bucket.id} data-bucket-id={bucket.id}
-          onPointerDown={e=>{suppressClick.current=false;if(arranging){setDraggedBucket(bucket.id);setSelectedBucket(bucket.id);e.currentTarget.setPointerCapture(e.pointerId);}else{holdTimer.current=setTimeout(()=>{setArranging(true);setSelectedBucket(bucket.id);suppressClick.current=true;},450);}}}
-          onPointerMove={e=>{if(draggedBucket!==null){const tile=document.elementFromPoint(e.clientX,e.clientY)?.closest("[data-bucket-id]");setDropBucket(tile ? Number(tile.getAttribute("data-bucket-id")) : null);}else cancelHold();}}
-          onPointerUp={e=>{cancelHold();if(draggedBucket!==null){const tile=document.elementFromPoint(e.clientX,e.clientY)?.closest("[data-bucket-id]");if(tile)reorderBucket(draggedBucket,Number(tile.getAttribute("data-bucket-id")));suppressClick.current=true;setDraggedBucket(null);setDropBucket(null);}}}
-          onPointerCancel={()=>{cancelHold();setDraggedBucket(null);setDropBucket(null);}}
-          onClick={() => {if(suppressClick.current){suppressClick.current=false;return;}setSelectedBucket(bucket.id);setBucketAmount("");setBucketNotice("");}}><svg viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="currentColor" strokeWidth="1.8"/></svg><span><small>{bucket.kind === "habit" ? "HABIT" : "SAVINGS"}</small><b>{bucket.name}</b><strong>{bucket.balance.toLocaleString()}</strong><small>sats · {bucket.percent}% of deposits</small></span></button>)}</div>
-        {arranging && selected && <div className="bucket-transfer arrange-controls"><Button variant="outline" disabled={buckets[0]?.id===selected.id} onClick={()=>{const i=buckets.findIndex(b=>b.id===selected.id);if(i>0)reorderBucket(selected.id,buckets[i-1].id);}}>← Move earlier</Button><Button variant="outline" disabled={buckets.at(-1)?.id===selected.id} onClick={()=>{const i=buckets.findIndex(b=>b.id===selected.id);if(i<buckets.length-1)reorderBucket(selected.id,buckets[i+1].id);}}>Move later →</Button></div>}
-        {!buckets.length && <p className="bucket-empty">Create Running for habit rewards, or a family savings bucket to start setting sats aside.</p>}
-        {selected && <section className="bucket-panel"><h3>{selected.name}</h3><p>{selected.kind === "habit" ? `${selected.completions} completions logged` : "Savings set aside inside your wallet"}</p>
-          {selected.kind === "habit" && <><label className="payment-field">Reward per completion (sats)<Input inputMode="numeric" value={selected.reward} onChange={e=>{const n=Number(e.target.value);if(Number.isSafeInteger(n)&&n>=0&&n<=100000000)setBuckets(old=>old.map(b=>b.id===selected.id?{...b,reward:n}:b));}}/></label><Button className="bucket-primary" disabled={selected.reward<=0 || selected.reward>balance} onClick={()=>moveBucket("in",selected.reward,true)}>Log habit · Set aside {selected.reward.toLocaleString()} sats</Button>{selected.reward>balance && <p className="payment-error">Not enough spendable sats for this reward.</p>}</>}
-          <label className="payment-field">Move sats<Input value={bucketAmount} inputMode="numeric" placeholder="500" onChange={e=>setBucketAmount(e.target.value)}/></label>
-          <div className="bucket-transfer"><Button disabled={!validTransfer||transferAmount>balance} onClick={()=>moveBucket("in",transferAmount)}>Set aside</Button><Button variant="outline" disabled={!validTransfer||transferAmount>selected.balance} onClick={()=>moveBucket("out",transferAmount)}>Return to wallet</Button></div>
-          {bucketNotice && <p className="payment-success" role="status">{bucketNotice}</p>}
-          <button className="text-action" onClick={()=>{if(selected.balance>0){setBalance(old=>old+selected.balance);addHistory("released",`Deleted bucket · ${selected.name}`,selected.balance);}setBuckets(old=>old.filter(b=>b.id!==selected.id));setSelectedBucket(null);}}>{selected.balance>0 ? `Delete bucket · Return ${selected.balance.toLocaleString()} sats` : "Delete empty bucket"}</button>
-        </section>}
-        <section className="bucket-panel"><h3>Create a bucket</h3><label className="payment-field">Name<Input maxLength={32} value={bucketName} onChange={e=>setBucketName(e.target.value)} placeholder="Running, College fund…"/></label><div className="bucket-kind"><button aria-pressed={bucketKind==="savings"} onClick={()=>setBucketKind("savings")}>Savings</button><button aria-pressed={bucketKind==="habit"} onClick={()=>setBucketKind("habit")}>Habit</button></div><Button className="bucket-primary" disabled={!bucketName.trim()||buckets.some(b=>b.name.toLowerCase()===bucketName.trim().toLowerCase())} onClick={createBucket}>Create bucket</Button></section>
-        {!!buckets.length && <section className="bucket-panel"><h3>Split incoming deposits</h3><p>Choose a percentage for each bucket. The rest stays spendable. Applies to new deposits only.</p>{!editingRules ? <><p className="split-summary">{buckets.reduce((sum,b)=>sum+b.percent,0)}% set aside · {100-buckets.reduce((sum,b)=>sum+b.percent,0)}% spendable</p><Button variant="outline" onClick={()=>{setRuleDraft(Object.fromEntries(buckets.map(b=>[b.id,String(b.percent)])));setEditingRules(true);}}>Edit deposit split</Button></> : <><div className="split-fields">{buckets.map(bucket=><label key={bucket.id}>{bucket.name}<div><Input inputMode="numeric" value={ruleDraft[bucket.id]??String(bucket.percent)} onChange={e=>setRuleDraft(old=>({...old,[bucket.id]:e.target.value}))}/><span>%</span></div></label>)}</div><p className={rulesValid ? "split-summary" : "payment-error"}>{rulesValid ? `${100-draftTotal}% stays spendable` : "Use whole percentages totaling no more than 100%."}</p><div className="bucket-transfer"><Button disabled={!rulesValid} onClick={()=>{setBuckets(old=>old.map(b=>({...b,percent:Number(ruleDraft[b.id]??b.percent)})));setEditingRules(false);}}>Save split</Button><Button variant="outline" onClick={()=>setEditingRules(false)}>Cancel</Button></div></>}</section>}
-        <p className="bucket-footnote">Buckets divide one wallet balance. They have no separate keys. Demo buckets, balances, and arrangement are saved on this browser. No real bitcoin or private keys are stored.</p>
+        <div className="wallet-root-tile"><svg viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="currentColor" stroke="currentColor" strokeWidth="1.8"/></svg><span><small>MY CELL</small><strong>D-313</strong><small>{balance.toLocaleString()} sats</small></span></div>
+        <p className="tile-wallet-total">{formatDollars(balance)} spendable <span>· {formatDollars(reserved)} in buckets</span></p>
+        <div className="tile-grid-tools"><span>Tap to deposit · Pencil to edit</span><button onClick={()=>setArranging(!arranging)}>{arranging?"Done":"Arrange"}</button></div>
+        <div className={`honeycomb-canvas ${arranging?"arrange-active":""}`} style={{aspectRatio:`2.5 / ${Math.ceil(slotCount/2)*.79+ .25}`}}>
+          {Array.from({length:slotCount},(_,slot)=>{
+            const bucket=buckets.find(b=>positions.get(b.id)===slot);
+            const isPlus=slot===nextSlot;
+            return <div key={slot} data-grid-slot={slot} className={`honeycomb-slot ${targetSlot===slot?"snap-target":""}`} style={{left:`${(slot%2)*40+(Math.floor(slot/2)%2)*20}%`,top:`${Math.floor(slot/2)*100/(Math.ceil(slotCount/2)*.79+.25)*.79}%`}}>
+              <div className="grid-outline"><svg viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="currentColor" stroke="currentColor" strokeWidth="1.8"/></svg></div>
+              {bucket ? <div className={`wallet-bucket-tile ${draggedBucket===bucket.id?"dragging":""}`}>
+                <button className="bucket-face" aria-label={`${bucket.name}, ${bucket.balance} sats. Deposit ${formatDollars(bucket.reward)}`} onPointerDown={e=>{
+                  suppressClick.current=false;pointerStart.current={x:e.clientX,y:e.clientY};e.currentTarget.setPointerCapture(e.pointerId);
+                  const begin=()=>{dragId.current=bucket.id;setDraggedBucket(bucket.id);setGhost({x:e.clientX,y:e.clientY,name:bucket.name});suppressClick.current=true;};
+                  if(arranging)begin();else holdTimer.current=setTimeout(begin,400);
+                }} onPointerMove={e=>{
+                  if(dragId.current!==null){setGhost({x:e.clientX,y:e.clientY,name:bucket.name});const slot=document.elementFromPoint(e.clientX,e.clientY)?.closest("[data-grid-slot]");setTargetSlot(slot?Number(slot.getAttribute("data-grid-slot")):null);}
+                  else if(pointerStart.current&&Math.hypot(e.clientX-pointerStart.current.x,e.clientY-pointerStart.current.y)>8)cancelHold();
+                }} onPointerUp={e=>{cancelHold();if(dragId.current!==null){const slot=document.elementFromPoint(e.clientX,e.clientY)?.closest("[data-grid-slot]");if(slot)placeTile(dragId.current,Number(slot.getAttribute("data-grid-slot")));suppressClick.current=true;}dragId.current=null;setDraggedBucket(null);setGhost(null);setTargetSlot(null);}}
+                  onPointerCancel={()=>{cancelHold();dragId.current=null;setDraggedBucket(null);setGhost(null);setTargetSlot(null);}}
+                  onClick={()=>{if(suppressClick.current){suppressClick.current=false;return;}if(arranging)openTileEditor(bucket.id);else quickDeposit(bucket.id);}}>
+                  <svg viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="currentColor" stroke="currentColor" strokeWidth="1.8"/></svg><span><b>{bucket.name}</b><strong>{formatDollars(bucket.balance)}</strong><small>{bucket.balance.toLocaleString()} sats</small><em>+ {formatDollars(bucket.reward)}</em></span>
+                </button>
+                <button className="tile-edit" aria-label={`Edit ${bucket.name}`} onClick={()=>openTileEditor(bucket.id)}><Pencil size={14}/></button>
+              </div> : isPlus ? <button className="add-bucket-tile" onClick={makeTile} aria-label="Create bucket"><svg viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="currentColor" stroke="currentColor" strokeWidth="1.8"/></svg><span><Plus/><small>Add bucket</small></span></button> : null}
+            </div>;
+          })}
+        </div>
+        {ghost && <div className="tile-drag-ghost" style={{left:ghost.x,top:ghost.y}}><svg viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="currentColor" stroke="currentColor" strokeWidth="1.8"/></svg><span>{ghost.name}</span></div>}
+        {bucketNotice && <p className="tile-notice" role="status">{bucketNotice}</p>}
+        <p className="tile-wallet-note">Every bit counts.<small>Demo · $1 = 1,000 sats</small></p>
+        {edited && <div className="tile-editor-backdrop" onClick={()=>setEditBucketId(null)}><section className="tile-editor" role="dialog" aria-modal="true" aria-label="Edit bucket" onClick={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==="Escape")setEditBucketId(null);}}>
+          <div className="tile-editor-heading"><h2>Edit bucket</h2><button aria-label="Close bucket editor" onClick={()=>setEditBucketId(null)}>×</button></div>
+          <label className="payment-field">Label<Input autoFocus maxLength={32} value={editLabel} onChange={e=>setEditLabel(e.target.value)}/></label>
+          <label className="payment-field">Standard deposit<Input inputMode="decimal" value={editDeposit} onChange={e=>setEditDeposit(e.target.value)}/></label>
+          <div className="bucket-kind"><button aria-pressed={depositUnit==="usd"} onClick={()=>{setDepositUnit("usd");setEditDeposit((edited.reward/DEMO_SATS_PER_DOLLAR).toFixed(2));}}>USD</button><button aria-pressed={depositUnit==="sats"} onClick={()=>{setDepositUnit("sats");setEditDeposit(String(edited.reward));}}>Sats</button></div>
+          <p className="tile-editor-help">Demo rate: $1 = 1,000 sats. Tap the tile to move its preset from your spendable balance.</p>
+          <details className="tile-advanced"><summary>More options</summary>
+            <label className="payment-field">Share of incoming deposits (%)<Input inputMode="numeric" value={editSplit} onChange={e=>setEditSplit(e.target.value)}/></label>
+            <div className="bucket-kind"><button aria-pressed={edited.kind==="savings"} onClick={()=>setBuckets(old=>old.map(b=>b.id===edited.id?{...b,kind:"savings"}:b))}>Savings</button><button aria-pressed={edited.kind==="habit"} onClick={()=>setBuckets(old=>old.map(b=>b.id===edited.id?{...b,kind:"habit"}:b))}>Habit</button></div>
+            {edited.kind==="habit"&&<p className="tile-editor-help">{edited.completions} completions · Each tap logs a habit reward.</p>}
+            <div className="bucket-transfer"><Button variant="outline" onClick={()=>placeTile(edited.id,Math.max(0,(positions.get(edited.id)??0)-1))}>Move earlier</Button><Button variant="outline" onClick={()=>placeTile(edited.id,Math.min(99,(positions.get(edited.id)??0)+1))}>Move later</Button></div>
+            <button className="text-action" disabled={edited.balance===0} onClick={()=>{setBalance(old=>old+edited.balance);setBuckets(old=>old.map(b=>b.id===edited.id?{...b,balance:0}:b));addHistory("released",edited.name,edited.balance);}}>Return {edited.balance.toLocaleString()} sats to wallet</button>
+            <button className="text-action delete-tile" onClick={()=>{if(edited.balance>0){setBalance(old=>old+edited.balance);addHistory("released",`Deleted bucket · ${edited.name}`,edited.balance);}setBuckets(old=>old.filter(b=>b.id!==edited.id));setEditBucketId(null);}}>Delete bucket{edited.balance>0?" and return its sats":""}</button>
+          </details>
+          {!validEdit&&<p className="payment-error">Use a unique label, a positive deposit, and split percentages totaling no more than 100%.</p>}
+          <Button className="bucket-primary" disabled={!validEdit} onClick={()=>{setBuckets(old=>old.map(b=>b.id===edited.id?{...b,name:editLabel.trim(),reward:editSats,percent:Number(editSplit)}:b));setEditBucketId(null);}}>Save</Button>
+        </section></div>}
       </div>}
 
       {screen === "home" && <div className="flow-screen home-screen">

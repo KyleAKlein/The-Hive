@@ -15,3 +15,9 @@
 - Hub retains Send, Receive, The Hive, and Activity.
 - Top Cell hexagon is the My Wallet entry point. Buckets live in that second layer.
 - Bucket tiles snap into a fixed grid; users can arrange via drag or accessible move controls. Save arrangement with demo data in browser storage; never save actual private keys here.
+
+## Tile wallet redesign
+- My Wallet shows the Cell centered above an open honeycomb lattice. A plus tile immediately creates a zero-balance bucket.
+- Tap a bucket to deposit its preset; pencil opens label/deposit editing. Hold to drag or use Arrange; drop into empty slots or swap occupied positions.
+- Dollar display currently uses a labeled demo rate of 1,000 sats per USD, not live pricing. Preserve precise sats as balances.
+- Keep deposit splits and deletion inside compact advanced settings, rather than bulky cards on the canvas.
