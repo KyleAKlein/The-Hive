@@ -254,6 +254,7 @@ export default function Home() {
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <div className="send-cell-top"><HexFrame/><span><small>MY CELL</small><b>D-313</b><strong>{formatDollars(balance)}</strong><small>{balance.toLocaleString()} sats</small></span></div>
         <h2>Send</h2>
+        <p className="send-subtitle">Choose a Cell. Send a little love.</p>
         <div className="send-honeycomb">
           <button className="send-method method-upper" onClick={()=>{setDestinationMode(destinationMode==="qr"?"cell":"qr");setRecipient("");setNotice("");}}><HexFrame/><span>{destinationMode==="qr"?<><Users/><small>Cell number</small></>:<><QrCode/><small>QR code</small></>}</span></button>
           <button className="send-method method-lower" onClick={()=>{setDestinationMode(destinationMode==="public"?"cell":"public");setRecipient("");setNotice("");}}><HexFrame/><span>{destinationMode==="public"?<><Users/><small>Cell number</small></>:<><KeyRound/><small>Public key</small></>}</span></button>
@@ -267,7 +268,7 @@ export default function Home() {
         {recipient && !validRecipient && <p className="send-validation">{destinationMode==="public"?"Paste the full public key for this demo.":"Use a Cell such as A-101, other than your own."}</p>}
         {sendInput && !validAmount && <p className="send-validation">Enter a positive amount{sendUnit==="usd"?" with up to two decimal places":" in whole sats"}.</p>}
         {validAmount&&sats>balance&&<p className="send-validation">Not enough spendable sats.</p>}
-        <Button className="send-submit" disabled={!validAmount||!validRecipient||sats>balance} onClick={()=>recordPayment("sent")}>Send {validAmount?formatDollars(sats):"sats"}</Button>
+        <Button className="send-submit" disabled={!validAmount||!validRecipient||sats>balance} onClick={()=>recordPayment("sent")}><Send aria-hidden="true"/>Send {validAmount?formatDollars(sats):"sats"}</Button>
         {notice&&<p className="send-result" role="status">{notice}</p>}
         <p className="send-demo-note">Demo · $1 = 1,000 sats · QR scanning is a preview</p>
       </div>}
