@@ -28,6 +28,13 @@ function HiveMark({ compact = false }: { compact?: boolean }) {
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [key, setKey] = useState("");
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState("");
+  const copyKey = async (kind:"private" | "public") => {
+    const value=kind==="private"?"DEMO-PRIVATE-KEY-D313-NOT-A-REAL-WALLET":"DEMO-PUBLIC-KEY-D313-NOT-A-REAL-WALLET";
+    try {await navigator.clipboard.writeText(value);setCopiedKey(kind);setCopyError("");}
+    catch {setCopyError("Select the key text to copy it manually.");}
+  };
 
   const [balance, setBalance] = useState(21340);
   const [recipient, setRecipient] = useState("");
@@ -200,8 +207,9 @@ export default function Home() {
         <button className="back" onClick={() => setScreen("creating")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <p className="step">STEP 3 OF 3</p><h2>Save Your Keys</h2><p className="flow-copy key-save-instruction">Click and screen shot both of these</p><div className="key-save-arrows" aria-hidden="true"><svg viewBox="0 0 300 42" fill="none"><path d="M130 3C105 3 78 10 72 33M62 23l10 12 12-9M170 3c25 0 52 7 58 30m-12-7 12 9 10-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-        <div className="key-pair"><div className="key-card private"><button className="mini-qr" aria-label="Open private key" onClick={() => setScreen("private-key")}><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></button><b>PRIVATE KEY</b><small>Your access key. Keep it private.</small></div><div className="key-card public"><button className="mini-qr" aria-label="Open public key" onClick={() => setScreen("public-key")}><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></button><b>PUBLIC KEY</b><small>Your receiving key. Share it to get sats.</small></div></div>
-        <div className="cell-card"><span>Your Cell</span><strong>D-313 <Copy size={17}/></strong><small>This is your Hive identity.</small></div>
+        <div className="key-pair"><div className="key-card private"><button className="mini-qr" aria-label="Open private key" onClick={() => setScreen("private-key")}><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></button><b>PRIVATE KEY</b><small>Your access key. Keep it private.</small><div className="inline-key-copy"><code>DEMO-PRIVATE-KEY-D313-NOT-A-REAL-WALLET</code><button onClick={()=>copyKey("private")} aria-label="Copy private key">{copiedKey==="private"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="private"?"Copied":"Copy"}</span></button></div></div><div className="key-card public"><button className="mini-qr" aria-label="Open public key" onClick={() => setScreen("public-key")}><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></button><b>PUBLIC KEY</b><small>Your receiving key. Share it to get sats.</small><div className="inline-key-copy"><code>DEMO-PUBLIC-KEY-D313-NOT-A-REAL-WALLET</code><button onClick={()=>copyKey("public")} aria-label="Copy public key">{copiedKey==="public"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="public"?"Copied":"Copy"}</span></button></div></div></div>
+        {copyError && <p className="key-copy-status" role="status">{copyError}</p>}
+        <div className="cell-card cell-key-hex"><svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0d0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><div><span>Your Cell</span><strong>D-313</strong><small>Your Hive identity</small></div></div>
         <Button className="unlock" onClick={() => setScreen("home")}>I’ve Saved My Keys</Button>
         <p className="session-note">Demo keys only—nothing sensitive is being generated or stored.</p>
       </div>}
