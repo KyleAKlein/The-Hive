@@ -6,7 +6,7 @@ import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Pencil, Plus, ArrowUp
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile";
+type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town";
 
 function FeesExplained() {
   return <details className="fee-details">
@@ -46,8 +46,20 @@ function Instagram({size=18}:{size?:number}){return <svg width={size} height={si
 function Youtube({size=18}:{size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3Z" fill="currentColor" stroke="none"/></svg>}
 function ShowFlyer(){return <div className="show-flyer"><span className="flyer-kicker">THE LATE SET PRESENTS</span><strong>GOOD<br/>QUESTION.</strong><span className="flyer-sub">A NIGHT OF STAND-UP</span><div className="flyer-mic"><svg viewBox="0 0 80 90" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="3"><rect x="28" y="5" width="24" height="42" rx="12"/><path d="M21 32v7a19 19 0 0038 0v-7M40 58v23M24 82h32M29 19h22M29 27h22"/></g></svg></div><span className="flyer-name">WITH MARCUS REED & FRIENDS</span><b>SAT · OCT 17 · 8 PM</b><span className="flyer-venue">THE HONEY ROOM · LAS VEGAS</span></div>}
 
+const MOCK_ACTIVITY: {id:number;kind:"sent"|"received"|"allocated"|"released";cell:string;amount:number;time:string}[] = [
+{id:101,kind:"received",cell:"D-117 · Marcus Reed",amount:100,time:"Today · 9:42 AM"},
+{id:102,kind:"sent",cell:"D-042 · Open mic tip",amount:250,time:"Today · 9:35 AM"},
+{id:103,kind:"allocated",cell:"Rainy day bucket",amount:1000,time:"Today · 9:20 AM"},
+{id:104,kind:"received",cell:"Demo wallet funding",amount:24000,time:"Today · 9:18 AM"},
+{id:105,kind:"sent",cell:"D-090 · Coffee",amount:6000,time:"Yesterday · 6:10 PM"},
+{id:106,kind:"released",cell:"Weekend bucket",amount:1000,time:"Yesterday · 6:02 PM"},
+{id:107,kind:"sent",cell:"D-226 · Honey dot tip",amount:20,time:"Yesterday · 5:45 PM"},
+{id:108,kind:"received",cell:"D-008 · Thank you tip",amount:1000,time:"Yesterday · 4:30 PM"}
+];
+
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("welcome");
+  const [townLedger,setTownLedger]=useState(false);
   const [cellSearch,setCellSearch]=useState("");
   const [searchError,setSearchError]=useState("");
   const [savedCell,setSavedCell]=useState(false);
@@ -68,7 +80,7 @@ export default function Home() {
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [notice, setNotice] = useState("");
-  const [transactions, setTransactions] = useState<{id: number; kind: "sent" | "received" | "allocated" | "released"; cell: string; amount: number; time: string}[]>([]);
+  const [transactions, setTransactions] = useState<{id: number; kind: "sent" | "received" | "allocated" | "released"; cell: string; amount: number; time: string}[]>(MOCK_ACTIVITY);
   const [buckets, setBuckets] = useState<{id:number; name:string; kind:"habit" | "savings"; balance:number; percent:number; reward:number; completions:number; slot?:number}[]>([]);
   const [bucketName, setBucketName] = useState("");
   const [bucketKind, setBucketKind] = useState<"habit" | "savings">("savings");
@@ -88,7 +100,7 @@ export default function Home() {
       const saved=JSON.parse(localStorage.getItem("hive-demo-wallet-v1") ?? "null");
       if(saved && Number.isSafeInteger(saved.balance) && saved.balance>=0 && Array.isArray(saved.buckets) && saved.buckets.every((b: {id:number;name:string;kind:string;balance:number;percent:number;reward:number;completions:number})=>Number.isSafeInteger(b.id)&&typeof b.name==="string"&&(b.kind==="habit"||b.kind==="savings")&&Number.isSafeInteger(b.balance)&&b.balance>=0&&Number.isInteger(b.percent)&&b.percent>=0&&b.percent<=100&&Number.isSafeInteger(b.reward)&&b.reward>=0&&Number.isInteger(b.completions)&&b.completions>=0) && saved.buckets.reduce((sum:number,b:{percent:number})=>sum+b.percent,0)<=100) {
         setBalance(saved.balance);setBuckets(saved.buckets);
-        if(Array.isArray(saved.transactions) && saved.transactions.every((t:{kind:string;amount:number;cell:string;time:string})=>["sent","received","allocated","released"].includes(t.kind)&&Number.isSafeInteger(t.amount)&&t.amount>0&&typeof t.cell==="string"&&typeof t.time==="string"))setTransactions(saved.transactions);
+        if(Array.isArray(saved.transactions) && saved.transactions.every((t:{kind:string;amount:number;cell:string;time:string})=>["sent","received","allocated","released"].includes(t.kind)&&Number.isSafeInteger(t.amount)&&t.amount>0&&typeof t.cell==="string"&&typeof t.time==="string"))setTransactions([...saved.transactions,...MOCK_ACTIVITY.filter(m=>!saved.transactions.some((t:{id:number})=>t.id===m.id))]);
       }
     } catch { /* A fresh demo is safe if browser storage is unavailable. */ }
     setStorageReady(true);
@@ -373,8 +385,9 @@ export default function Home() {
         </section></div>}
       </div>}
 
+      {screen === "town" && <div className="flow-screen town-screen"><div className="profile-topbar"><button onClick={()=>setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button><span>THE HIVE</span><HexFrame/></div><h2>The town hexagon</h2><p className="directory-copy">A little space for everyone.</p><div className="town-scene"><img src="/hive-town.png" alt="Cartoon hexagonal town plaza surrounded by Hive condos, with a stage, rows of seats and a ledger wall on the right"/><button className="town-wall-hit" onClick={()=>setTownLedger(!townLedger)} aria-label="Open the Hive ledger wall"/></div><div className="town-controls"><button onClick={()=>setScreen("directory")}><Search size={17}/>Find a Cell</button><button onClick={()=>setTownLedger(!townLedger)} aria-expanded={townLedger}><Clock3 size={17}/>Ledger wall</button></div>{townLedger&&<section className="town-ledger"><div className="profile-section-head"><h3>Hive ledger</h3><span>SIMULATED</span></div>{transactions.map(t=><div className="town-ledger-row" key={t.id}><span>{t.kind==="sent"?"D-313 → ":t.kind==="received"?"→ D-313 · ":"D-313 · "}{t.cell}<small>{t.time} · {t.kind}</small></span><b>{formatDollars(t.amount)}</b></div>)}</section>}<p className="profile-demo-caption">Demo town · all ledger entries are fictional.<br/>New demo payments and bucket transfers appear here and in Activity.</p></div>}
       {screen === "directory" && <div className="flow-screen hive-directory">
-        <button className="back" onClick={()=>setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button>
+        <button className="back" onClick={()=>setScreen("town")} aria-label="Back to town square"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <p className="profile-eyebrow">FIND YOUR PEOPLE</p><h2>The Hive</h2><p className="directory-copy">A Cell number. A familiar face.</p>
         <form className="cell-search" onSubmit={e=>{e.preventDefault();lookupCell();}}><Search size={19}/><input aria-label="Search Cell number" placeholder="Enter a Cell · D-117" value={cellSearch} onChange={e=>setCellSearch(e.target.value)} autoCapitalize="characters"/><button type="submit" aria-label="Look up Cell"><ArrowUpRight/></button></form>
@@ -400,7 +413,7 @@ export default function Home() {
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <button className="cell-badge" aria-label="Open My Wallet and buckets" onClick={()=>setScreen("buckets")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><small>My Wallet</small></button>
         <p className="home-label">YOUR CELL · D-313</p><h2>{balance.toLocaleString()} sats</h2><p className="fiat">Spendable · {reserved.toLocaleString()} sats in buckets</p>
-        <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => openPayment("receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("directory")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
+        <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => openPayment("receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={() => { setKey(""); setScreen("welcome"); }}>Return to startup</button>
         <p className="custody-note"><ShieldCheck size={15}/> Your keys. Your control. Always.</p>
