@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { allocateDeposit } from "@/lib/bucket-math";
-import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Pencil, Plus, ArrowUpDown, Send, ShieldCheck, Users, Zap } from "lucide-react";
+import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Pencil, Plus, ArrowUpDown, Send, ShieldCheck, Users, Zap, Search, Bookmark, Mail, MapPin, CalendarDays, Trophy, X, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets";
+type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile";
 
 function FeesExplained() {
   return <details className="fee-details">
@@ -42,8 +42,18 @@ function HoneyAmountIcon({kind}: {kind: HoneyIconKind}) {
   </svg>;
 }
 
+function Instagram({size=18}:{size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>}
+function Youtube({size=18}:{size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3Z" fill="currentColor" stroke="none"/></svg>}
+function ShowFlyer(){return <div className="show-flyer"><span className="flyer-kicker">THE LATE SET PRESENTS</span><strong>GOOD<br/>QUESTION.</strong><span className="flyer-sub">A NIGHT OF STAND-UP</span><div className="flyer-mic"><svg viewBox="0 0 80 90" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="3"><rect x="28" y="5" width="24" height="42" rx="12"/><path d="M21 32v7a19 19 0 0038 0v-7M40 58v23M24 82h32M29 19h22M29 27h22"/></g></svg></div><span className="flyer-name">WITH MARCUS REED & FRIENDS</span><b>SAT · OCT 17 · 8 PM</b><span className="flyer-venue">THE HONEY ROOM · LAS VEGAS</span></div>}
+
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("welcome");
+  const [cellSearch,setCellSearch]=useState("");
+  const [searchError,setSearchError]=useState("");
+  const [savedCell,setSavedCell]=useState(false);
+  const [flyerOpen,setFlyerOpen]=useState(false);
+  const [profileNotice,setProfileNotice]=useState("");
+  const lookupCell=()=>{if(cellSearch.trim().toUpperCase()==="D-117"){setSearchError("");setScreen("profile");}else setSearchError("This design preview includes D-117. Try that Cell.");};
   const [key, setKey] = useState("");
   useEffect(()=>{window.scrollTo({top:0,left:0,behavior:"instant"});},[screen]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -363,11 +373,34 @@ export default function Home() {
         </section></div>}
       </div>}
 
+      {screen === "directory" && <div className="flow-screen hive-directory">
+        <button className="back" onClick={()=>setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button>
+        <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
+        <p className="profile-eyebrow">FIND YOUR PEOPLE</p><h2>The Hive</h2><p className="directory-copy">A Cell number. A familiar face.</p>
+        <form className="cell-search" onSubmit={e=>{e.preventDefault();lookupCell();}}><Search size={19}/><input aria-label="Search Cell number" placeholder="Enter a Cell · D-117" value={cellSearch} onChange={e=>setCellSearch(e.target.value)} autoCapitalize="characters"/><button type="submit" aria-label="Look up Cell"><ArrowUpRight/></button></form>
+        {searchError&&<p className="directory-copy" role="status">{searchError}</p>}
+        <p className="directory-section-label">PROFILE PREVIEW</p>
+        <button className="directory-person" onClick={()=>setScreen("profile")}><span className="small-profile-avatar">MR</span><span><b>Marcus Reed</b><small>Comedian · Las Vegas</small><em>D-117</em></span><ArrowUpRight/></button>
+        <p className="profile-demo-caption">Demo profile · fictional person and show</p>
+      </div>}
+      {screen === "profile" && <div className="flow-screen public-profile">
+        <div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to The Hive"><ArrowLeft size={20}/></button><span>PUBLIC PROFILE</span><button className={savedCell?"saved":""} onClick={()=>setSavedCell(!savedCell)} aria-label={savedCell?"Unsave Cell":"Save Cell"} aria-pressed={savedCell}><Bookmark size={20} fill={savedCell?"currentColor":"none"}/></button></div>
+        <div className="profile-avatar" aria-label="Demo avatar for Marcus Reed"><svg viewBox="0 0 120 126" role="img"><defs><clipPath id="profile-portrait-clip"><path d="M60 3L112 33v60l-52 30L8 93V33Z"/></clipPath></defs><g clipPath="url(#profile-portrait-clip)"><rect width="120" height="126" fill="#334437"/><circle cx="83" cy="33" r="38" fill="#cbb077" opacity=".18"/><path d="M15 130v-17c0-28 19-45 45-45s45 17 45 45v17" fill="#151d19"/><path d="M50 61v17q10 13 20 0V61" fill="#b17a51"/><ellipse cx="60" cy="45" rx="23" ry="29" fill="#c9986f"/><path d="M37 42V27q5-20 26-18 23 2 22 28l-8-12q-14 9-33 4Z" fill="#24221e"/><path d="M46 53q14 19 28 0-2 24-14 24T46 53" fill="#382c25"/><path d="M53 55q7 5 14 0" stroke="#f2d6b7" strokeWidth="2" fill="none"/><circle cx="50" cy="43" r="2" fill="#28251f"/><circle cx="70" cy="43" r="2" fill="#28251f"/></g><path d="M60 3L112 33v60l-52 30L8 93V33Z" fill="none" stroke="#d7b674" strokeWidth="2"/></svg><span>D-117</span></div>
+        <h2>Marcus Reed</h2><p className="profile-role">Comedian <span>·</span> Las Vegas</p><p className="profile-bio">Observational comedy.<br/>Questionable life decisions.</p>
+        <div className="profile-socials"><a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Open Instagram (demo platform link)"><Instagram size={18}/><span>Instagram</span></a><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" aria-label="Open YouTube (demo platform link)"><Youtube size={19}/><span>YouTube</span></a><button onClick={()=>setProfileNotice("Booking contact will appear here when the performer adds their email.")}><Mail size={18}/><span>Booking</span></button></div>
+        <div className="profile-actions"><button onClick={()=>setSavedCell(!savedCell)}><Bookmark size={16} fill={savedCell?"currentColor":"none"}/>{savedCell?"Cell saved":"Save Cell"}</button><button className="profile-tip" onClick={()=>{openPayment("send");setRecipient("D-117");}}><Send size={16}/>Send a tip</button></div>
+        {profileNotice&&<p className="profile-demo-caption" role="status">{profileNotice}</p>}
+        <section className="profile-show"><div className="profile-section-head"><h3>Catch me next</h3><span>ONE UPCOMING SHOW</span></div><button className="flyer-preview" onClick={()=>setFlyerOpen(true)} aria-label="Enlarge upcoming show flyer"><ShowFlyer/><span className="flyer-enlarge">Tap to enlarge <ArrowUpRight size={13}/></span></button><div className="show-details"><p><CalendarDays size={15}/><span>Saturday, October 17 · 8 PM</span></p><p><MapPin size={15}/><span>The Honey Room · Las Vegas</span></p></div></section>
+        <section className="profile-achievements"><div className="profile-section-head"><h3>A little recognition</h3></div><div className="profile-trophy-row"><span><Trophy/><small>First stage</small></span><span><HoneyAmountIcon kind="four"/><small>Hive regular</small></span><span><Zap/><small>First tip</small></span></div></section>
+        <p className="profile-demo-caption">Design preview · fictional profile, flyer and achievements.<br/>Social buttons open platform homepages.</p>
+        {flyerOpen&&<div className="flyer-modal" role="dialog" aria-modal="true" aria-label="Upcoming show flyer" onClick={()=>setFlyerOpen(false)} onKeyDown={e=>{if(e.key==="Escape")setFlyerOpen(false);}}><button autoFocus className="flyer-close" onClick={()=>setFlyerOpen(false)} aria-label="Close flyer"><X/></button><div onClick={e=>e.stopPropagation()}><ShowFlyer/></div></div>}
+      </div>}
+
       {screen === "home" && <div className="flow-screen home-screen">
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <button className="cell-badge" aria-label="Open My Wallet and buckets" onClick={()=>setScreen("buckets")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><small>My Wallet</small></button>
         <p className="home-label">YOUR CELL · D-313</p><h2>{balance.toLocaleString()} sats</h2><p className="fiat">Spendable · {reserved.toLocaleString()} sats in buckets</p>
-        <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => openPayment("receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
+        <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => openPayment("receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("directory")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={() => { setKey(""); setScreen("welcome"); }}>Return to startup</button>
         <p className="custody-note"><ShieldCheck size={15}/> Your keys. Your control. Always.</p>
