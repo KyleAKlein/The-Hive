@@ -44,6 +44,11 @@ function HoneyAmountIcon({kind}: {kind: HoneyIconKind}) {
 
 function Instagram({size=18}:{size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>}
 function Youtube({size=18}:{size?:number}){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3Z" fill="currentColor" stroke="none"/></svg>}
+function DirectoryAvatar({cell,anonymous}:{cell:string;anonymous:boolean}) {
+ const n=Number(cell.replace(/\D/g,""));
+ const tones=["#c38c63","#e0b58d","#986347","#d7a382"];
+ return <span className={`directory-hex-avatar ${anonymous?"is-anonymous":""}`} aria-hidden="true">{anonymous?<Users size={21}/>:<svg viewBox="0 0 48 52" fill="none"><rect width="48" height="52" fill={["#3b5144","#514435","#3d485a","#534755"][n%4]}/><circle cx="35" cy="12" r="17" fill="#e3c482" opacity=".12"/><path d="M4 55v-8c0-13 9-20 20-20s20 7 20 20v8" fill={["#182a25","#242129","#273831"][n%3]}/><path d="M20 26v9q4 5 8 0v-9" fill={tones[n%4]}/><ellipse cx="24" cy="20" rx="10" ry="13" fill={tones[n%4]}/><path d={n%2?"M14 20V12q1-9 11-8 11 0 10 16l-5-8q-7 4-13 1Z":"M13 27V15q0-12 12-11 12 0 11 13v12l-4-2V14q-10 3-15-1v14Z"} fill="#29231f"/><circle cx="20" cy="19" r=".9" fill="#29231f"/><circle cx="28" cy="19" r=".9" fill="#29231f"/><path d="M21 25q3 3 6 0" stroke="#f8ddbc" strokeWidth="1.1" strokeLinecap="round"/></svg>}</span>;
+}
 function ShowFlyer(){return <div className="show-flyer"><span className="flyer-kicker">THE LATE SET PRESENTS</span><strong>GOOD<br/>QUESTION.</strong><span className="flyer-sub">A NIGHT OF STAND-UP</span><div className="flyer-mic"><svg viewBox="0 0 80 90" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="3"><rect x="28" y="5" width="24" height="42" rx="12"/><path d="M21 32v7a19 19 0 0038 0v-7M40 58v23M24 82h32M29 19h22M29 27h22"/></g></svg></div><span className="flyer-name">WITH MARCUS REED & FRIENDS</span><b>SAT · OCT 17 · 8 PM</b><span className="flyer-venue">THE HONEY ROOM · LAS VEGAS</span></div>}
 
 const MOCK_ACTIVITY: {id:number;kind:"sent"|"received"|"allocated"|"released";cell:string;amount:number;time:string}[] = [
@@ -402,7 +407,7 @@ export default function Home() {
         <form className="cell-search" onSubmit={e=>{e.preventDefault();lookupCell();}}><Search size={19}/><input aria-label="Search directory by name, Cell number or tag" placeholder="Search names, Cells or tags" value={cellSearch} onChange={e=>setCellSearch(e.target.value)} autoCapitalize="characters"/><button type="submit" aria-label="Look up Cell"><ArrowUpRight/></button></form>
         {searchError&&<p className="directory-copy" role="status">{searchError}</p>}
         <div className="directory-list-heading"><p className="directory-section-label">DIRECTORY · {visibleMembers.length} CELLS</p><button onClick={()=>setScreen("my-profile")}>My profile <Pencil size={12}/></button></div>
-        <div className="directory-members">{visibleMembers.map(m=><button className="directory-person" key={m.cell} onClick={()=>openMember(m.cell)}><span><b>{m.name}</b>{m.tag&&<small>{m.tag}</small>}</span><em>{m.cell}</em><ArrowUpRight/></button>)}</div>
+        <div className="directory-members">{visibleMembers.map(m=><button className="directory-person" key={m.cell} onClick={()=>openMember(m.cell)}><DirectoryAvatar cell={m.cell} anonymous={m.name==="Anonymous Cell"}/><span className="directory-member-name"><b>{m.name}</b>{m.tag&&<small>{m.tag}</small>}</span><em>{m.cell}</em><ArrowUpRight/></button>)}</div>
         {!visibleMembers.length&&<p className="directory-copy">No Cells found. Try another name, Cell number or tag.</p>}
         <p className="profile-demo-caption">Demo directory · sample members.<br/>Anonymous Cells keep their number and hide their name and tag.</p>
       </div>}
