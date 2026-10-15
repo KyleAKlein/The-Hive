@@ -6,7 +6,7 @@ import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Pencil, Plus, ArrowUp
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town";
+type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town" | "my-profile" | "member";
 
 function FeesExplained() {
   return <details className="fee-details">
@@ -65,7 +65,16 @@ export default function Home() {
   const [savedCell,setSavedCell]=useState(false);
   const [flyerOpen,setFlyerOpen]=useState(false);
   const [profileNotice,setProfileNotice]=useState("");
-  const lookupCell=()=>{if(cellSearch.trim().toUpperCase()==="D-117"){setSearchError("");setScreen("profile");}else setSearchError("This design preview includes D-117. Try that Cell.");};
+  const [anonymous,setAnonymous]=useState(false);
+  const [privacyReady,setPrivacyReady]=useState(false);
+  const [selectedMember,setSelectedMember]=useState("D-042");
+  useEffect(()=>{try{setAnonymous(localStorage.getItem("hive-profile-anonymous")==="true");}catch{}setPrivacyReady(true);},[]);
+  useEffect(()=>{if(privacyReady)try{localStorage.setItem("hive-profile-anonymous",String(anonymous));}catch{}},[anonymous,privacyReady]);
+  const directoryMembers=[{cell:"D-008",name:"Anonymous Cell",tag:""},{cell:"D-042",name:"Avery Chen",tag:"Poet"},{cell:"D-090",name:"Jordan Ellis",tag:"Musician"},{cell:"D-117",name:"Marcus Reed",tag:"Comedian"},{cell:"D-226",name:"Sam Rivera",tag:"Skater"},{cell:"D-313",name:anonymous?"Anonymous Cell":"Kyle Klein",tag:anonymous?"":"Hive member"},{cell:"D-405",name:"Anonymous Cell",tag:""}];
+  const visibleMembers=directoryMembers.filter(m=>`${m.name} ${m.cell} ${m.tag}`.toLowerCase().includes(cellSearch.trim().toLowerCase()));
+  const openMember=(cell:string)=>{if(cell==="D-117")setScreen("profile");else if(cell==="D-313")setScreen("my-profile");else{setSelectedMember(cell);setScreen("member");}};
+  const lookupCell=()=>{if(visibleMembers.length===1)openMember(visibleMembers[0].cell);};
+  const member=directoryMembers.find(m=>m.cell===selectedMember)!;
   const [key, setKey] = useState("");
   useEffect(()=>{window.scrollTo({top:0,left:0,behavior:"instant"});},[screen]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -390,12 +399,15 @@ export default function Home() {
         <button className="back" onClick={()=>setScreen("town")} aria-label="Back to town square"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <p className="profile-eyebrow">FIND YOUR PEOPLE</p><h2>The Hive</h2><p className="directory-copy">A Cell number. A familiar face.</p>
-        <form className="cell-search" onSubmit={e=>{e.preventDefault();lookupCell();}}><Search size={19}/><input aria-label="Search Cell number" placeholder="Enter a Cell · D-117" value={cellSearch} onChange={e=>setCellSearch(e.target.value)} autoCapitalize="characters"/><button type="submit" aria-label="Look up Cell"><ArrowUpRight/></button></form>
+        <form className="cell-search" onSubmit={e=>{e.preventDefault();lookupCell();}}><Search size={19}/><input aria-label="Search directory by name, Cell number or tag" placeholder="Search names, Cells or tags" value={cellSearch} onChange={e=>setCellSearch(e.target.value)} autoCapitalize="characters"/><button type="submit" aria-label="Look up Cell"><ArrowUpRight/></button></form>
         {searchError&&<p className="directory-copy" role="status">{searchError}</p>}
-        <p className="directory-section-label">PROFILE PREVIEW</p>
-        <button className="directory-person" onClick={()=>setScreen("profile")}><span className="small-profile-avatar">MR</span><span><b>Marcus Reed</b><small>Comedian · Las Vegas</small><em>D-117</em></span><ArrowUpRight/></button>
-        <p className="profile-demo-caption">Demo profile · fictional person and show</p>
+        <div className="directory-list-heading"><p className="directory-section-label">DIRECTORY · {visibleMembers.length} CELLS</p><button onClick={()=>setScreen("my-profile")}>My profile <Pencil size={12}/></button></div>
+        <div className="directory-members">{visibleMembers.map(m=><button className="directory-person" key={m.cell} onClick={()=>openMember(m.cell)}><span><b>{m.name}</b>{m.tag&&<small>{m.tag}</small>}</span><em>{m.cell}</em><ArrowUpRight/></button>)}</div>
+        {!visibleMembers.length&&<p className="directory-copy">No Cells found. Try another name, Cell number or tag.</p>}
+        <p className="profile-demo-caption">Demo directory · sample members.<br/>Anonymous Cells keep their number and hide their name and tag.</p>
       </div>}
+      {screen === "my-profile" && <div className="flow-screen public-profile"><div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to directory"><ArrowLeft/></button><span>MY PROFILE</span><Pencil size={18}/></div><div className="own-profile-avatar">KK</div><h2>Kyle Klein</h2><p className="profile-role">D-313 · Hive member</p><section className="profile-privacy"><h3>Directory privacy</h3><label><span><b>Appear as Anonymous Cell</b><small>Hide your name and tag. Your Cell number stays visible and can still receive tips.</small></span><input type="checkbox" role="switch" checked={anonymous} onChange={e=>setAnonymous(e.target.checked)}/></label><p className="directory-section-label">HOW YOU APPEAR IN THE DIRECTORY</p><div className="privacy-preview"><span><b>{anonymous?"Anonymous Cell":"Kyle Klein"}</b>{!anonymous&&<small>Hive member</small>}</span><em>D-313</em></div><p className="profile-demo-caption" role="status">{anonymous?"Your name and tag are hidden.":"Your name and tag are visible."} Saved on this browser.</p></section><button className="own-directory-link" onClick={()=>{setCellSearch("D-313");setScreen("directory");}}>View my directory listing <ArrowUpRight size={16}/></button></div>}
+      {screen === "member" && <div className="flow-screen public-profile"><div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to directory"><ArrowLeft/></button><span>PUBLIC PROFILE</span><Users size={18}/></div><div className="own-profile-avatar">{member.name==="Anonymous Cell"?<Users/>:member.name.split(" ").map(n=>n[0]).join("")}</div><h2>{member.name}</h2><p className="profile-role">{member.cell}{member.tag&&` · ${member.tag}`}</p><p className="profile-bio">{member.name==="Anonymous Cell"?"This member keeps their identity private.":"Part of the Hive."}</p><div className="profile-actions"><button className="profile-tip" onClick={()=>{openPayment("send");setRecipient(member.cell);}}><Send size={16}/>Send a tip</button></div><p className="profile-demo-caption">Demo member · simulated payments only.</p></div>}
       {screen === "profile" && <div className="flow-screen public-profile">
         <div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to The Hive"><ArrowLeft size={20}/></button><span>PUBLIC PROFILE</span><button className={savedCell?"saved":""} onClick={()=>setSavedCell(!savedCell)} aria-label={savedCell?"Unsave Cell":"Save Cell"} aria-pressed={savedCell}><Bookmark size={20} fill={savedCell?"currentColor":"none"}/></button></div>
         <div className="profile-avatar" aria-label="Demo avatar for Marcus Reed"><svg viewBox="0 0 120 126" role="img"><defs><clipPath id="profile-portrait-clip"><path d="M60 3L112 33v60l-52 30L8 93V33Z"/></clipPath></defs><g clipPath="url(#profile-portrait-clip)"><rect width="120" height="126" fill="#334437"/><circle cx="83" cy="33" r="38" fill="#cbb077" opacity=".18"/><path d="M15 130v-17c0-28 19-45 45-45s45 17 45 45v17" fill="#151d19"/><path d="M50 61v17q10 13 20 0V61" fill="#b17a51"/><ellipse cx="60" cy="45" rx="23" ry="29" fill="#c9986f"/><path d="M37 42V27q5-20 26-18 23 2 22 28l-8-12q-14 9-33 4Z" fill="#24221e"/><path d="M46 53q14 19 28 0-2 24-14 24T46 53" fill="#382c25"/><path d="M53 55q7 5 14 0" stroke="#f2d6b7" strokeWidth="2" fill="none"/><circle cx="50" cy="43" r="2" fill="#28251f"/><circle cx="70" cy="43" r="2" fill="#28251f"/></g><path d="M60 3L112 33v60l-52 30L8 93V33Z" fill="none" stroke="#d7b674" strokeWidth="2"/></svg><span>D-117</span></div>
@@ -415,6 +427,7 @@ export default function Home() {
         <p className="home-label">YOUR CELL · D-313</p><h2>{balance.toLocaleString()} sats</h2><p className="fiat">Spendable · {reserved.toLocaleString()} sats in buckets</p>
         <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => openPayment("receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
+        <button className="restart" onClick={()=>setScreen("my-profile")}>My profile</button>
         <button className="restart" onClick={() => { setKey(""); setScreen("welcome"); }}>Return to startup</button>
         <p className="custody-note"><ShieldCheck size={15}/> Your keys. Your control. Always.</p>
       </div>}
