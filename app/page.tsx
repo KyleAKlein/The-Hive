@@ -6,7 +6,7 @@ import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Pencil, Plus, ArrowUp
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town" | "my-profile" | "member";
+type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town" | "my-profile" | "member" | "invoice";
 
 function FeesExplained() {
   return <details className="fee-details">
@@ -62,6 +62,8 @@ const MOCK_ACTIVITY: {id:number;kind:"sent"|"received"|"allocated"|"released";ce
 {id:108,kind:"received",cell:"D-008 · Thank you tip",amount:1000,time:"Yesterday · 4:30 PM"}
 ];
 
+const DEMO_SATS_PER_DOLLAR = 1000;
+
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [townLedger,setTownLedger]=useState(false);
@@ -90,6 +92,24 @@ export default function Home() {
     catch {setCopyError("Select the key text to copy it manually.");}
   };
 
+  const [invoiceValue,setInvoiceValue]=useState("");
+  const [invoiceUnit,setInvoiceUnit]=useState<"usd"|"sats">("usd");
+  const [invoiceNote,setInvoiceNote]=useState("");
+  const [invoiceTo,setInvoiceTo]=useState("");
+  const [invoiceExpiry,setInvoiceExpiry]=useState("60");
+  const [invoiceMessage,setInvoiceMessage]=useState("");
+  const [invoiceDraft,setInvoiceDraft]=useState<{id:string;sats:number;note:string;expires:number;to:string;sent:boolean;paid:boolean}|null>(null);
+  const [demoInvoices,setDemoInvoices]=useState<{id:string;sats:number;note:string;expires:number;to:string;sent:boolean;paid:boolean}[]>([]);
+  const [invoiceReady,setInvoiceReady]=useState(false);
+  useEffect(()=>{try{const v=JSON.parse(localStorage.getItem("hive-demo-invoices")||"[]");if(Array.isArray(v))setDemoInvoices(v.filter(x=>typeof x.id==="string"&&Number.isSafeInteger(x.sats)&&x.sats>0&&typeof x.note==="string"&&typeof x.to==="string"&&typeof x.expires==="number"&&typeof x.sent==="boolean"&&typeof x.paid==="boolean"));}catch{}setInvoiceReady(true);},[]);
+  useEffect(()=>{if(invoiceReady)try{localStorage.setItem("hive-demo-invoices",JSON.stringify(demoInvoices));}catch{}},[demoInvoices,invoiceReady]);
+  const invoiceSats=invoiceUnit==="usd"?Math.round(Number(invoiceValue)*DEMO_SATS_PER_DOLLAR):Number(invoiceValue);
+  const invoiceValid=(invoiceUnit==="usd"?/^\d+(\.\d{1,2})?$/:/^\d+$/).test(invoiceValue)&&Number.isSafeInteger(invoiceSats)&&invoiceSats>0&&invoiceSats<=100000000;
+  const invoiceText=invoiceDraft?`HIVE-DEMO-INVOICE:${invoiceDraft.id}:D-313:${invoiceDraft.sats}:${invoiceDraft.expires}:${encodeURIComponent(invoiceDraft.note)}`:"";
+  const copyReceive=async(value:string)=>{try{await navigator.clipboard.writeText(value);setInvoiceMessage("Copied.");}catch{setInvoiceMessage("Copy unavailable. Select the text above to copy it.");}};
+  const startInvoice=()=>{setInvoiceDraft(null);setInvoiceValue("");setInvoiceNote("");setInvoiceTo("");setInvoiceMessage("");setScreen("invoice");};
+  const createInvoice=()=>{if(!invoiceValid)return;const v={id:crypto.randomUUID(),sats:invoiceSats,note:invoiceNote.trim(),expires:Date.now()+Number(invoiceExpiry)*60000,to:"",sent:false,paid:false};setInvoiceDraft(v);setDemoInvoices(old=>[v,...old]);setInvoiceMessage("");};
+  const sendInvoice=()=>{const to=invoiceTo.trim().toUpperCase();if(!/^[A-Z]{1,3}-\d{1,6}(?:-\d{1,6})?$/.test(to)||to==="D-313"){setInvoiceMessage("Enter another Cell, such as D-117.");return;}if(!invoiceDraft||invoiceDraft.expires<=Date.now())return;const v={...invoiceDraft,to,sent:true};setInvoiceDraft(v);setDemoInvoices(old=>old.map(x=>x.id===v.id?v:x));setInvoiceMessage(`Demo invoice addressed to ${to}. Saved locally; no message is delivered to another device.`);};
   const [balance, setBalance] = useState(21340);
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
@@ -127,7 +147,7 @@ export default function Home() {
     const [item]=next.splice(source,1);next.splice(target,0,item);return next;
   });
   const cancelHold = ()=>{if(holdTimer.current)clearTimeout(holdTimer.current);holdTimer.current=null;};
-  const DEMO_SATS_PER_DOLLAR = 1000;
+
   const [editBucketId, setEditBucketId] = useState<number | null>(null);
   const [editLabel, setEditLabel] = useState("");
   const [editDeposit, setEditDeposit] = useState("1.00");
@@ -322,22 +342,8 @@ export default function Home() {
         <p className="send-demo-note">Demo · $1 = 1,000 sats · QR scanning is a preview</p>
       </div>}
 
-      {screen === "receive" && <div className="flow-screen payment-screen">
-        <button className="back" onClick={() => setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button>
-        <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">DEMO WALLET · D-313</p><h2>Receive sats</h2>
-        <p className="flow-copy">Create a demo request or add simulated funds.</p>
-        <div className="payment-panel">
-          <p className="available-balance">Available: {balance.toLocaleString()} demo sats</p>
-          {<div className="receive-cell"><span>Your Cell</span><strong>D-313</strong><small>Share this Cell with the sender.</small></div>}
-          <label className="payment-field">Amount in sats<Input inputMode="numeric" value={amount} onChange={e => {setAmount(e.target.value);setNotice("");}} placeholder="500"/></label>
-          {amount && !validAmount && <p className="payment-error">Enter a whole number from 1 to 100,000,000 sats.</p>}
-          {validAmount && <div className="demo-request"><b>Demo payment request</b><code>HIVE-DEMO:D-313:{sats}</code><small>Text request only · Not a Lightning invoice</small></div>}
-          <Button className="unlock" disabled={!validAmount} onClick={() => recordPayment("received")}>Simulate received payment</Button>
-          {notice && <p className="payment-success" role="status"><Check size={18}/>{notice}</p>}
-        </div>
-        <p className="session-note">Demo only. No real bitcoin moves. Demo balance and history are saved on this browser.</p>
-      </div>}
+      {screen === "receive" && <div className="flow-screen receive-design"><button className="back" onClick={()=>setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button><div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div><p className="step">YOUR RECEIVING DETAILS</p><h2>Receive sats</h2><p className="receive-cell-number">D-313</p><div className="receive-qr-hex"><HexFrame/><QrCode className="receive-qr-symbol" aria-label="Demo QR illustration"/></div><p className="receive-hint">Share your Cell or copy your public wallet info.</p><div className="receive-copy"><code>DEMO-PUBLIC-KEY-D313-NOT-A-REAL-WALLET</code><button onClick={()=>copyReceive("DEMO-PUBLIC-KEY-D313-NOT-A-REAL-WALLET")} aria-label="Copy public wallet info"><Copy size={18}/></button></div><button className="receive-copy-cell" onClick={()=>copyReceive("D-313")}>Copy Cell number <Copy size={13}/></button><button className="create-invoice-hex" onClick={startInvoice}><HexFrame/><span><Plus size={22}/><b>Create an<br/>invoice</b></span></button>{invoiceMessage&&<p className="invoice-status" role="status">{invoiceMessage}</p>}{demoInvoices.length>0&&<section className="invoice-history"><h3>Your demo invoices</h3>{demoInvoices.map(v=><button key={v.id} onClick={()=>{setInvoiceDraft(v);setInvoiceTo(v.to);setInvoiceMessage("");setScreen("invoice");}}><span>{v.note||"Payment request"}<small>{v.paid?"Paid · simulated":v.expires<Date.now()?"Expired":v.sent?`Addressed to ${v.to}`:"Ready to share"}</small></span><b>{formatDollars(v.sats)}</b></button>)}</section>}<p className="profile-demo-caption">Design preview · QR illustration and placeholder public info.<br/>No real Bitcoin or Lightning invoice.</p></div>}
+      {screen === "invoice" && <div className="flow-screen invoice-screen"><button className="back" onClick={()=>{setScreen("receive");setInvoiceMessage("");}} aria-label="Back to receive"><ArrowLeft/></button><div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div><p className="step">REQUEST A SPECIFIC AMOUNT</p><h2>{invoiceDraft?"Your invoice":"Create an invoice"}</h2><p className="directory-copy">Receiving Cell · D-313</p>{!invoiceDraft?<div className="invoice-form"><label>Amount<div className="invoice-amount-field"><input aria-label="Invoice amount" inputMode={invoiceUnit==="usd"?"decimal":"numeric"} placeholder={invoiceUnit==="usd"?"0.00":"0"} value={invoiceValue} onChange={e=>setInvoiceValue(e.target.value)}/><select aria-label="Invoice currency" value={invoiceUnit} onChange={e=>{setInvoiceValue("");setInvoiceUnit(e.target.value as "usd"|"sats");}}><option value="usd">USD</option><option value="sats">sats</option></select></div></label><p className="invoice-conversion">{invoiceValid?`${invoiceSats.toLocaleString()} sats · ${formatDollars(invoiceSats)}`:"Set how much you want to receive."}</p><label>What is it for? <small>Optional</small><input value={invoiceNote} onChange={e=>setInvoiceNote(e.target.value)} maxLength={120} placeholder="Tickets, a lesson, dinner…"/></label><label>Expires after<select value={invoiceExpiry} onChange={e=>setInvoiceExpiry(e.target.value)}><option value="15">15 minutes</option><option value="60">1 hour</option><option value="1440">24 hours</option></select></label><Button disabled={!invoiceValid} onClick={createInvoice}>Create demo invoice</Button></div>:<div className="invoice-form invoice-created"><strong className="invoice-total">{formatDollars(invoiceDraft.sats)}</strong><small>{invoiceDraft.sats.toLocaleString()} sats</small><p>{invoiceDraft.note||"Payment request"}</p><div className="receive-qr-hex"><HexFrame/><QrCode className="receive-qr-symbol" aria-label="Demo invoice QR illustration"/></div><div className="receive-copy"><code>{invoiceText}</code><button onClick={()=>copyReceive(invoiceText)} aria-label="Copy demo invoice"><Copy size={18}/></button></div><p className="invoice-conversion">{invoiceDraft.paid?"Paid · simulated":invoiceDraft.expires<=Date.now()?"Expired":`Expires ${new Date(invoiceDraft.expires).toLocaleString()}`}</p><label>Send to a Cell<input placeholder="D-117" value={invoiceTo} onChange={e=>setInvoiceTo(e.target.value)} autoCapitalize="characters"/></label><Button disabled={invoiceDraft.paid||invoiceDraft.expires<=Date.now()} onClick={sendInvoice}>Send demo invoice</Button><button className="text-action" disabled={invoiceDraft.paid||invoiceDraft.expires<=Date.now()} onClick={()=>{const v={...invoiceDraft,paid:true};setBalance(old=>old+v.sats);setTransactions(old=>[{id:Date.now(),kind:"received",cell:`Invoice · ${v.to||"Demo payer"}`,amount:v.sats,time:new Date().toLocaleString()},...old]);setInvoiceDraft(v);setDemoInvoices(old=>old.map(x=>x.id===v.id?v:x));setInvoiceMessage("Simulated payment received. Balance and Activity updated.");}}>Simulate payment received</button><button className="text-action" onClick={startInvoice}>Create another invoice</button></div>}{invoiceMessage&&<p className="invoice-status" role="status">{invoiceMessage}</p>}<p className="profile-demo-caption">Demo only · $1 = 1,000 sats.<br/>Invoices are saved on this browser. Sending previews the workflow; it does not deliver to another user.</p></div>}
 
       {screen === "activity" && <div className="flow-screen activity-screen">
         <button className="back" onClick={() => setScreen("home")} aria-label="Back to wallet"><ArrowLeft/></button>
