@@ -1,0 +1,33 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createRecovery, checkRecovery, normalizeRecovery, backupMatches, recoveryFingerprint, connectHiveWallet } from '../lib/hive-wallet.ts';
+const known='abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+test('new recovery keys have 24 valid words and are unique',()=>{
+ const first=createRecovery(),second=createRecovery();
+ assert.equal(first.split(' ').length,24);
+ assert.equal(checkRecovery(first),first);
+ assert.notEqual(first,second);
+});
+test('recovery normalizes case and whitespace and rejects invalid checksums',()=>{
+ assert.equal(checkRecovery('  '+known.toUpperCase().replaceAll(' ','\n ')+' '),known);
+ assert.equal(normalizeRecovery('  ONE  TWO '),'one two');
+ assert.throws(()=>checkRecovery(known.replace('about','abandon')));
+ assert.throws(()=>checkRecovery('DEMO-PRIVATE-KEY-D313-NOT-A-REAL-WALLET'));
+});
+test('backup verification requires the same key, not just any valid key',()=>{
+ assert.equal(backupMatches(known,known.toUpperCase()),true);
+ assert.equal(backupMatches(known,createRecovery()),false);
+});
+test('wallet storage fingerprints are deterministic and separate wallets',async()=>{
+ assert.equal(await recoveryFingerprint(known),await recoveryFingerprint(known.toUpperCase()));
+ assert.notEqual(await recoveryFingerprint(known),await recoveryFingerprint(createRecovery()));
+});
+test('activation without a service credential stops before loading the SDK',async()=>{
+ await assert.rejects(connectHiveWallet(known,'','mainnet'),/configuration/);
+});
+test('wallet WebAssembly validates locally without a credential or funding',async()=>{
+ const bytes=readFileSync('node_modules/@breeztech/breez-sdk-spark/web/breez_sdk_spark_wasm_bg.wasm');
+ assert.equal(WebAssembly.validate(bytes),true);
+ await WebAssembly.compile(bytes);
+});

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import HiveWallet from "@/components/hive-wallet";
 import LightningWallet from "@/components/lightning-wallet";
 import { allocateDeposit } from "@/lib/bucket-math";
 import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Pencil, Plus, ArrowUpDown, Send, ShieldCheck, Users, Zap, Search, Bookmark, Mail, MapPin, CalendarDays, Trophy, X, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town" | "my-profile" | "member" | "invoice" | "lightning";
+type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town" | "my-profile" | "member" | "invoice" | "lightning" | "hive-wallet";
 
 function FeesExplained() {
   return <details className="fee-details">
@@ -66,6 +67,7 @@ const MOCK_ACTIVITY: {id:number;kind:"sent"|"received"|"allocated"|"released";ce
 const DEMO_SATS_PER_DOLLAR = 1000;
 
 export default function Home() {
+  const [walletIntent,setWalletIntent]=useState<"join"|"restore"|null>(null);
   const [screen, setScreen] = useState<Screen>("welcome");
   const [townLedger,setTownLedger]=useState(false);
   const [cellSearch,setCellSearch]=useState("");
@@ -248,17 +250,19 @@ export default function Home() {
         </header>
         <p className="welcome-promise">Small Payments.<br/><span>A Bigger World.</span></p>
         <div className="welcome-choices">
-          <button className="welcome-choice choice-join" onClick={() => setScreen("join")}>
+          <button className="welcome-choice choice-join" onClick={() => {setWalletIntent("join");setScreen("hive-wallet");}}>
             <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><defs><linearGradient id="join-gold" x1="30" y1="15" x2="190" y2="210" gradientUnits="userSpaceOnUse"><stop stopColor="#ffe29a"/><stop offset=".52" stopColor="#f7c65e"/><stop offset="1" stopColor="#dca135"/></linearGradient></defs><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="url(#join-gold)" stroke="#ffdf8c" strokeWidth="1.2"/></svg>
-            <span><strong>JOIN<br/>THE HIVE</strong><small>Send Bitcoin.<br/>Get Your Cell.</small></span>
+            <span><strong>JOIN<br/>THE HIVE</strong><small>Your wallet.<br/>Your community.</small></span>
           </button>
-          <button className="welcome-choice choice-enter" onClick={() => setScreen("home")}>
+          <button className="welcome-choice choice-enter" onClick={() => {setWalletIntent("restore");setScreen("hive-wallet");}}>
             <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0d0a" fillOpacity=".85" stroke="#d7ad58" strokeWidth="1.5"/></svg>
-            <span><strong>ENTER<br/>THE HIVE</strong><small>I already<br/>have a key.</small></span>
+            <span><strong>ENTER<br/>THE HIVE</strong><small>Use my<br/>saved key.</small></span>
           </button>
         </div>
+        <button className="restart welcome-demo-link" onClick={()=>setScreen("home")}>Explore the demo</button>
       </div>}
 
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} onBack={()=>{setWalletIntent(null);setScreen("welcome");}}/></div>}
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
@@ -437,7 +441,7 @@ export default function Home() {
       {screen === "home" && <div className="flow-screen home-screen">
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <button className="cell-badge" aria-label="Open My Wallet and buckets" onClick={()=>setScreen("buckets")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><small>My Wallet</small></button>
-        <button className="lightning-entry" onClick={()=>setScreen("lightning")}><Zap size={18}/> Connect a Lightning wallet <ArrowUpRight size={16}/></button><p className="profile-demo-caption">Demo wallet below · sample funds and Cells</p><p className="home-label">YOUR CELL · D-313</p><h2>{balance.toLocaleString()} sats</h2><p className="fiat">Spendable · {reserved.toLocaleString()} sats in buckets</p>
+        <button className="lightning-entry" onClick={()=>setScreen("lightning")}><Zap size={18}/> Connect an existing wallet <ArrowUpRight size={16}/></button><p className="profile-demo-caption">Demo wallet below · sample funds and Cells</p><p className="home-label">YOUR CELL · D-313</p><h2>{balance.toLocaleString()} sats</h2><p className="fiat">Spendable · {reserved.toLocaleString()} sats in buckets</p>
         <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => openPayment("receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={()=>setScreen("my-profile")}>My profile</button>
