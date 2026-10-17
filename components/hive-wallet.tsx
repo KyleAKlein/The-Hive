@@ -31,12 +31,14 @@ const REFRESH_EVENTS = new Set<SdkEvent["type"]>([
 
 export default function HiveWallet({
   intent,
+  initialRecovery,
   backupRequest,
   onConnectionChange,
   onBack,
   onOpenApp,
 }: {
   intent: "join" | "restore" | null;
+  initialRecovery: string;
   backupRequest: number;
   onConnectionChange: (connected: boolean) => void;
   onBack: () => void;
@@ -62,14 +64,14 @@ export default function HiveWallet({
 
   useEffect(() => {
     if (intent === "join" && !seed.current) {
-      seed.current = createRecovery();
+      seed.current = initialRecovery ? checkRecovery(initialRecovery) : createRecovery();
       setRecovery(seed.current);
       setPhase("backup");
       setStatus("Recovery words were generated on this device. No wallet has been funded.");
     } else if (intent === "restore" && !seed.current) {
       setPhase("restore");
     }
-  }, [intent]);
+  }, [initialRecovery, intent]);
 
   useEffect(() => {
     if (!backupRequest || !seed.current) return;

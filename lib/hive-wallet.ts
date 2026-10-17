@@ -1,5 +1,6 @@
-import { generateMnemonic, validateMnemonic } from '@scure/bip39';
+import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english.js';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
 import type { BreezSdk, Network } from '@breeztech/breez-sdk-spark/ssr';
 
 export const HIVE_WALLET_NETWORK = 'regtest' as const satisfies Network;
@@ -14,6 +15,16 @@ export function checkRecovery(value: string) {
 }
 export function backupMatches(original: string, confirmation: string) {
  return checkRecovery(original) === checkRecovery(confirmation);
+}
+const toHex = (value: Uint8Array) => Array.from(value, byte => byte.toString(16).padStart(2, '0')).join('');
+export function createHiveKeyPair(recovery: string) {
+ const seed = mnemonicToSeedSync(checkRecovery(recovery));
+ try {
+  const { secretKey, publicKey } = secp256k1.keygen(seed.subarray(0, 48));
+  return { privateKey: toHex(secretKey), publicKey: toHex(publicKey) };
+ } finally {
+  seed.fill(0);
+ }
 }
 export async function recoveryFingerprint(value: string) {
  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(checkRecovery(value)));

@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import HiveWallet from "@/components/hive-wallet";
 import LightningWallet from "@/components/lightning-wallet";
 import { allocateDeposit } from "@/lib/bucket-math";
+import { createHiveKeyPair, createRecovery } from "@/lib/hive-wallet";
 import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Pencil, Plus, ArrowUpDown, Send, ShieldCheck, Users, Zap, Search, Bookmark, Mail, MapPin, CalendarDays, Trophy, X, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { QRCodeSVG } from "qrcode.react";
 
 type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town" | "my-profile" | "member" | "invoice" | "lightning" | "hive-wallet";
 
@@ -68,6 +70,8 @@ const DEMO_SATS_PER_DOLLAR = 1000;
 
 export default function Home() {
   const [walletIntent,setWalletIntent]=useState<"join"|"restore"|null>(null);
+  const [walletRecovery,setWalletRecovery]=useState("");
+  const [walletKeys,setWalletKeys]=useState<{privateKey:string;publicKey:string}|null>(null);
   const [backupRequest,setBackupRequest]=useState(0);
   const [walletConnected,setWalletConnected]=useState(false);
   const [screen, setScreen] = useState<Screen>("welcome");
@@ -92,9 +96,19 @@ export default function Home() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copyError, setCopyError] = useState("");
   const copyKey = async (kind:"private" | "public") => {
-    const value=kind==="private"?"DEMO-PRIVATE-KEY-D313-NOT-A-REAL-WALLET":"DEMO-PUBLIC-KEY-D313-NOT-A-REAL-WALLET";
+    const value=kind==="private"?walletKeys?.privateKey:walletKeys?.publicKey;
+    if(!value){setCopyError("Create your keys first.");return;}
     try {await navigator.clipboard.writeText(value);setCopiedKey(kind);setCopyError("");}
     catch {setCopyError("Select the key text to copy it manually.");}
+  };
+
+  const createWalletKeys=()=>{
+    const recovery=createRecovery();
+    setWalletRecovery(recovery);
+    setWalletKeys(createHiveKeyPair(recovery));
+    setCopiedKey(null);
+    setCopyError("");
+    setScreen("keys");
   };
 
   const [invoiceValue,setInvoiceValue]=useState("");
@@ -264,24 +278,15 @@ export default function Home() {
         <button className="restart welcome-demo-link" onClick={()=>setScreen("home")}>Explore the demo</button>
       </div>}
 
-      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={()=>setScreen("home")}/></div>}
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={()=>setScreen("home")}/></div>}
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">STEP 1 OF 3</p><h2>Join The Hive</h2><p className="flow-copy">Send bitcoin here</p>
-        <div className="qr-frame"><svg className="qr-hex-outline" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="#d7ad58" strokeWidth="1.5"/></svg><div className="fake-qr" aria-label="Placeholder QR illustration, not a payment code"><QrCode/></div></div>
-        <p className="payment-demo">Demo QR · No bitcoin will move</p>
-        <div className="payment-fees fee-estimate" aria-label="Demo signup fee estimate">
-          <div><span>Cell creation <small>(one time)</small></span><strong>$1.00</strong></div>
-          <div><span>Bitcoin fees <small>(est.)</small></span><span>$0.70</span></div>
-          <div><span>Lightning fees <small>(est.)</small></span><span>$0.10</span></div>
-          <div className="fee-total"><span>Total <small>(est.)</small></span><strong>$1.80</strong></div>
-          <span className="estimate-note">Demo estimates · USD equivalent</span>
-          <FeesExplained/>
-        </div>
-        <div className="waiting"><span className="spinner"/><div><b>Waiting for your transaction…</b><small>This is a visual demo. No bitcoin will move.</small></div></div>
-        <Button className="demo-forward" onClick={() => setScreen("creating")}>Transaction Received <span>Continue →</span></Button>
-        <div className="progress"><span className="active">1<i>Send</i></span><span>2<i>Create</i></span><span>3<i>Receive keys</i></span></div>
+        <p className="step">STEP 1 OF 2</p><h2>Join The Hive</h2><p className="flow-copy">No payment is required. Your keys are created privately on this device.</p>
+        <div className="creation-emblem"><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><KeyRound/></div>
+        <div className="check-list"><p><span><Check/></span>No bitcoin payment</p><p><span><Check/></span>Generated with secure browser randomness</p><p><span><Check/></span>Private key stays on this device</p></div>
+        <Button className="demo-forward" onClick={createWalletKeys}>Create my keys <span>Continue →</span></Button>
+        <div className="progress"><span className="active">1<i>Create</i></span><span>2<i>Save keys</i></span></div>
       </div>}
 
       {screen === "creating" && <div className="flow-screen creating-screen">
@@ -294,26 +299,26 @@ export default function Home() {
         <div className="progress"><span>1<i>Send</i></span><span className="active">2<i>Create</i></span><span>3<i>Receive keys</i></span></div>
       </div>}
 
-      {screen === "keys" && <div className="flow-screen keys-screen">
-        <button className="back" onClick={() => setScreen("creating")} aria-label="Back"><ArrowLeft/></button>
+      {screen === "keys" && walletKeys && <div className="flow-screen keys-screen">
+        <button className="back" onClick={() => setScreen("join")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">STEP 3 OF 3</p><h2>Save Your Keys</h2><p className="flow-copy key-save-instruction">Click and screen shot both of these</p><div className="key-save-arrows" aria-hidden="true"><svg viewBox="0 0 300 42" fill="none"><path d="M130 3C105 3 78 10 72 33M62 23l10 12 12-9M170 3c25 0 52 7 58 30m-12-7 12 9 10-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
-        <div className="key-pair"><div className="key-card private"><button className="mini-qr" aria-label="Open private key" onClick={() => setScreen("private-key")}><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></button><b>PRIVATE KEY</b><small>Your access key. Keep it private.</small><div className="inline-key-copy"><code>DEMO-PRIVATE-KEY-D313-NOT-A-REAL-WALLET</code><button onClick={()=>copyKey("private")} aria-label="Copy private key">{copiedKey==="private"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="private"?"Copied":"Copy"}</span></button></div></div><div className="key-card public"><button className="mini-qr" aria-label="Open public key" onClick={() => setScreen("public-key")}><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><QrCode/></button><b>PUBLIC KEY</b><small>Your receiving key. Share it to get sats.</small><div className="inline-key-copy"><code>DEMO-PUBLIC-KEY-D313-NOT-A-REAL-WALLET</code><button onClick={()=>copyKey("public")} aria-label="Copy public key">{copiedKey==="public"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="public"?"Copied":"Copy"}</span></button></div></div></div>
+        <p className="step">STEP 2 OF 2</p><h2>Save Your Keys</h2><p className="flow-copy key-save-instruction">Open and screen shot both QR codes</p><div className="key-save-arrows" aria-hidden="true"><svg viewBox="0 0 300 42" fill="none"><path d="M130 3C105 3 78 10 72 33M62 23l10 12 12-9M170 3c25 0 52 7 58 30m-12-7 12 9 10-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+        <div className="key-pair"><div className="key-card private"><button className="mini-qr real-key-qr" aria-label="Open private key" onClick={() => setScreen("private-key")}><QRCodeSVG value={walletKeys.privateKey} size={112} marginSize={2}/></button><b>PRIVATE KEY</b><small>Secret secp256k1 key. Never share it.</small><div className="inline-key-copy"><code>{walletKeys.privateKey}</code><button onClick={()=>copyKey("private")} aria-label="Copy private key">{copiedKey==="private"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="private"?"Copied":"Copy"}</span></button></div></div><div className="key-card public"><button className="mini-qr real-key-qr" aria-label="Open public key" onClick={() => setScreen("public-key")}><QRCodeSVG value={walletKeys.publicKey} size={112} marginSize={2}/></button><b>PUBLIC KEY</b><small>Compressed secp256k1 key. Safe to share.</small><div className="inline-key-copy"><code>{walletKeys.publicKey}</code><button onClick={()=>copyKey("public")} aria-label="Copy public key">{copiedKey==="public"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="public"?"Copied":"Copy"}</span></button></div></div></div>
         <p className="key-copy-hint">If you already took screen shots there’s no need to also copy and paste these keys.</p>
         {copyError && <p className="key-copy-status" role="status">{copyError}</p>}
         <div className="cell-card cell-key-hex"><svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0d0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><div><span>Your Cell</span><strong>D-313</strong><small>Your Hive identity</small></div></div>
         <Button className="unlock" onClick={() => {setWalletIntent("join");setScreen("home");}}>I’ve Saved My Keys</Button>
-        <p className="session-note">Demo keys only—nothing sensitive is being generated or stored.</p>
+        <p className="session-note">Real cryptographic keys · Generated locally · Not uploaded or saved by Hive</p>
       </div>}
 
-      {(screen === "private-key" || screen === "public-key") && <div className={`flow-screen key-detail-screen clean-key-screen ${screen === "private-key" ? "private" : "public"}`}>
+      {(screen === "private-key" || screen === "public-key") && walletKeys && <div className={`flow-screen key-detail-screen clean-key-screen ${screen === "private-key" ? "private" : "public"}`}>
         <button className="back" onClick={() => setScreen("keys")} aria-label="Back to your keys"><ArrowLeft/></button>
         <h2>{screen === "private-key" ? "Private key" : "Public key"}</h2>
         <div className="key-snapshot-hex">
           <svg className="key-snapshot-outline" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090c08" stroke="currentColor" strokeWidth="5"/></svg>
-          <div className="key-snapshot-qr"><QrCode aria-label="Placeholder QR illustration"/></div>
+          <div className="key-snapshot-qr"><QRCodeSVG aria-label={`${screen === "private-key" ? "Private" : "Public"} key QR code`} value={screen === "private-key" ? walletKeys.privateKey : walletKeys.publicKey} size={190} marginSize={2}/></div>
         </div>
-        <code className="key-snapshot-text">{screen === "private-key" ? "DEMO-PRIVATE-KEY-D313-NOT-A-REAL-WALLET" : "DEMO-PUBLIC-KEY-D313-NOT-A-REAL-WALLET"}</code>
+        <code className="key-snapshot-text">{screen === "private-key" ? walletKeys.privateKey : walletKeys.publicKey}</code>
       </div>}
 
       {screen === "enter" && <div className="flow-screen enter-screen">

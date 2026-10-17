@@ -19,6 +19,7 @@
     "@breeztech/breez-sdk-spark": "^0.26.1",
     "@getalby/sdk": "^8.0.3",
     "@hookform/resolvers": "^5.7.1",
+    "@noble/curves": "2.0.1",
     "@scure/bip39": "^2.4.0",
     "@shadcn/react": "^0.3.0",
     "class-variance-authority": "0.7.1",

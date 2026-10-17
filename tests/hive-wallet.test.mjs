@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
  createRecovery,
+ createHiveKeyPair,
  checkRecovery,
  normalizeRecovery,
  backupMatches,
@@ -27,6 +28,13 @@ test('recovery normalizes case and whitespace and rejects invalid checksums',()=
 test('backup verification requires the same key, not just any valid key',()=>{
  assert.equal(backupMatches(known,known.toUpperCase()),true);
  assert.equal(backupMatches(known,createRecovery()),false);
+});
+test('recovery deterministically creates a valid compressed secp256k1 key pair',()=>{
+ const first=createHiveKeyPair(known),second=createHiveKeyPair(known.toUpperCase());
+ assert.deepEqual(first,second);
+ assert.match(first.privateKey,/^[a-f0-9]{64}$/);
+ assert.match(first.publicKey,/^0[23][a-f0-9]{64}$/);
+ assert.notDeepEqual(first,createHiveKeyPair(createRecovery()));
 });
 test('wallet storage fingerprints are deterministic and separate wallets',async()=>{
  assert.equal(await recoveryFingerprint(known),await recoveryFingerprint(known.toUpperCase()));
