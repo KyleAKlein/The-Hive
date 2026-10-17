@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
  createRecovery,
+ createWalletPrivateKey,
+ restoreWalletPrivateKey,
+ createWalletAccessKeys,
  createHiveKeyPair,
  checkRecovery,
  normalizeRecovery,
@@ -56,4 +59,28 @@ test('wallet WebAssembly validates locally without a credential or funding',asyn
  const bytes=readFileSync('node_modules/@breeztech/breez-sdk-spark/web/breez_sdk_spark_wasm_bg.wasm');
  assert.equal(WebAssembly.validate(bytes),true);
  await WebAssembly.compile(bytes);
+});
+
+// Known BIP39 vectors are public test fixtures, never funded wallets.
+test('wallet private key restores the exact mnemonic, SDK seed, storage, and public identity',async()=>{
+ const { mnemonicToSeedSync, generateMnemonic } = await import('@scure/bip39');
+ const { wordlist } = await import('@scure/bip39/wordlists/english.js');
+ for (const words of [known,generateMnemonic(wordlist,128),generateMnemonic(wordlist,256)]) {
+  const key=createWalletPrivateKey(words);
+  assert.match(key,/^hive-wallet-v1:/);
+  const restored=restoreWalletPrivateKey('  '+key.toUpperCase()+'  ');
+  assert.equal(restored,words);
+  assert.deepEqual(mnemonicToSeedSync(restored),mnemonicToSeedSync(words));
+  assert.equal(await walletStorageDir(restored),await walletStorageDir(words));
+  assert.deepEqual(createWalletAccessKeys(restored),createWalletAccessKeys(words));
+ }
+});
+test('wallet private key rejects truncation, bad checksum, public keys, and old identity secrets',()=>{
+ const key=createWalletPrivateKey(known);
+ assert.throws(()=>restoreWalletPrivateKey(key.slice(0,-1)));
+ assert.throws(()=>restoreWalletPrivateKey(key.slice(0,-3)+'000'));
+ assert.throws(()=>restoreWalletPrivateKey(key.replace('000','fff')));
+ assert.throws(()=>restoreWalletPrivateKey(createHiveKeyPair(known).privateKey));
+ assert.throws(()=>restoreWalletPrivateKey(createHiveKeyPair(known).publicKey));
+ assert.equal(restoreWalletPrivateKey(known),known);
 });

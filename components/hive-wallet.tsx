@@ -10,6 +10,8 @@ import type {
 import { QRCodeSVG } from "qrcode.react";
 import {
   checkRecovery,
+  createWalletPrivateKey,
+  restoreWalletPrivateKey,
   connectHiveWallet,
   createRecovery,
   HIVE_LIGHTNING_ENABLED,
@@ -259,11 +261,12 @@ export default function HiveWallet({
       return;
     }
     setConfirmation(normalizeRecovery(value));
-    setStatus("Recovery words pasted. Tap Open my wallet.");
+    setStatus("Key pasted. Tap Open my wallet.");
   }
 
   async function connectWallet(mnemonic: string, destination: "active" | "fund") {
     seed.current = mnemonic;
+    onRecoveryReady(mnemonic);
     setStatus("Opening your Bitcoin wallet…");
     const connected = await connectHiveWallet(mnemonic);
     sdk.current = connected;
@@ -292,7 +295,6 @@ export default function HiveWallet({
       await createFundingInvoice(connected);
     } else {
       setPhase("active");
-      onOpenApp();
     }
   }
 
@@ -303,9 +305,9 @@ export default function HiveWallet({
   ) {
     let mnemonic: string;
     try {
-      mnemonic = checkRecovery(words);
+      mnemonic = restoreWalletPrivateKey(words);
     } catch {
-      setStatus("Those recovery words are not valid. Check the spelling and order.");
+      setStatus("That wallet private key or recovery phrase is not valid. Older Hive identity keys cannot restore a Bitcoin wallet.");
       return;
     }
     await run(async () => {
@@ -327,7 +329,7 @@ export default function HiveWallet({
       const saved = await loadRecoveryFromDevice();
       if (!saved) {
         setPhase("restore");
-        setStatus("No unfinished wallet is saved on this browser. Paste your recovery words below.");
+        setStatus("Paste your wallet private key or recovery words to restore your wallet.");
         return;
       }
       await connectWallet(saved, "active");
@@ -387,7 +389,12 @@ export default function HiveWallet({
 
       {phase === "backup" && (
         <>
-          <h2>Save your recovery words</h2>
+          <h2>Save your wallet private key</h2>
+          <p>This private key restores your Bitcoin wallet on another device. Keep it secret and offline.</p>
+          <div className="lightning-qr hive-private-qr"><QRCodeSVG value={createWalletPrivateKey(recovery)} size={228} marginSize={4} /></div>
+          <textarea className="hive-recovery-copy" readOnly aria-label="Wallet private key" value={createWalletPrivateKey(recovery)} onFocus={event => event.currentTarget.select()} />
+          <button onClick={() => copy(createWalletPrivateKey(recovery), "Wallet private key copied.")}>Copy private key</button>
+          <h3>Alternative: recovery words</h3>
           <p>
             Write these 12 words down in order. They are the key to reopening your Bitcoin wallet.
           </p>
@@ -430,7 +437,7 @@ export default function HiveWallet({
               checked={backupSaved}
               onChange={(event) => setBackupSaved(event.target.checked)}
             />
-            <span>I saved the 12 words somewhere safe.</span>
+            <span>I saved my private key or recovery words somewhere safe.</span>
           </label>
           <button
             disabled={busy || !backupSaved}
@@ -443,10 +450,10 @@ export default function HiveWallet({
 
       {phase === "restore" && (
         <>
-          <h2>Open your wallet</h2>
-          <p>Paste your 12 recovery words below. Older 24-word Hive wallets also work.</p>
+          <h2>Enter The Hive</h2>
+          <p>Paste your wallet private key to reopen your Bitcoin wallet. Recovery words also work.</p>
           {field(
-            "Recovery words",
+            "Wallet private key or recovery words",
             <textarea
               autoComplete="off"
               autoCorrect="off"
@@ -454,12 +461,12 @@ export default function HiveWallet({
               spellCheck={false}
               value={confirmation}
               onChange={(event) => setConfirmation(event.target.value)}
-              onPaste={() => setStatus("Recovery words pasted. Tap Open my wallet.")}
-              placeholder="Paste all recovery words here"
+              onPaste={() => setStatus("Key pasted. Tap Open my wallet.")}
+              placeholder="hive-wallet-v1:…"
             />,
           )}
           <button className="hive-secondary" disabled={busy} onClick={pasteRecovery}>
-            Paste words
+            Paste private key
           </button>
           <button
             disabled={busy || !confirmation.trim()}
@@ -475,6 +482,7 @@ export default function HiveWallet({
           <h2>Create your wallet</h2>
           <p className="flow-copy">Start your Hive wallet by sending Bitcoin to this QR code.</p>
           <p className="join-fee-copy">Scan with a Lightning wallet and choose how much to send.</p>
+          <details className="funding-backup"><summary>Save your private key before sending</summary><p>Use this key to reopen your wallet if this page refreshes. Keep it private.</p><textarea readOnly aria-label="Wallet private key backup" value={seed.current ? createWalletPrivateKey(seed.current) : ""} onFocus={event => event.currentTarget.select()} /><button disabled={!seed.current} onClick={() => copy(createWalletPrivateKey(seed.current), "Wallet private key copied. Save it somewhere private before sending.")}>Copy private key</button></details>
           {fundingInvoice ? (
             <div className="lightning-invoice hive-wallet-address">
               <div className="funding-hex">
@@ -498,7 +506,7 @@ export default function HiveWallet({
             <button
               onClick={() => {
                 setPhase("active");
-                setStatus("Wallet funded. Your Hive identity keys are ready.");
+                setStatus("Wallet funded. Your wallet keys are ready.");
                 onFundingComplete();
               }}
             >

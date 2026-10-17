@@ -32,6 +32,24 @@ export function createHiveKeyPair(recovery: string) {
   seed.fill(0);
  }
 }
+// Versioned wallet backup: losslessly encode the BIP39 word indices, including
+// their checksum. This is wallet recovery material, not an identity signing key.
+const PRIVATE_KEY_PREFIX = 'hive-wallet-v1:';
+export function createWalletPrivateKey(recovery: string) {
+ return PRIVATE_KEY_PREFIX + checkRecovery(recovery).split(' ').map(word => wordlist.indexOf(word).toString(16).padStart(3, '0')).join('');
+}
+export function restoreWalletPrivateKey(value: string) {
+ const normalized = value.trim().toLowerCase();
+ if (!normalized.startsWith(PRIVATE_KEY_PREFIX)) return checkRecovery(value);
+ const payload = normalized.slice(PRIVATE_KEY_PREFIX.length);
+ if (!/^(?:[0-7][a-f0-9]{2})+$/.test(payload) || ![36,45,54,63,72].includes(payload.length)) {
+  throw new Error('Invalid Hive wallet private key.');
+ }
+ return checkRecovery(payload.match(/.{3}/g)!.map(index => wordlist[parseInt(index,16)]).join(' '));
+}
+export function createWalletAccessKeys(recovery: string) {
+ return { privateKey: createWalletPrivateKey(recovery), publicKey: createHiveKeyPair(recovery).publicKey };
+}
 export async function recoveryFingerprint(value: string) {
  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(checkRecovery(value)));
  return Array.from(new Uint8Array(digest).slice(0, 12), b => b.toString(16).padStart(2, '0')).join('');
