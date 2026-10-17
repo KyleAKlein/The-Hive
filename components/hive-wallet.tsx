@@ -376,7 +376,7 @@ export default function HiveWallet({
 
       {phase === "preparing" && (
         <>
-          <h2>{joining ? "Join The Hive" : "Preparing your wallet"}</h2>
+          <h2>{joining ? "Create your wallet" : "Preparing your wallet"}</h2>
           <p>Your recovery words will be available later from My Cell.</p>
           <div className="waiting">
             <span className="spinner" aria-hidden="true" />
@@ -472,13 +472,14 @@ export default function HiveWallet({
 
       {phase === "fund" && (
         <>
-          <h2>Join The Hive</h2>
+          <h2>Create your wallet</h2>
           <p className="flow-copy">Start your Hive wallet by sending Bitcoin to this QR code.</p>
           <p className="join-fee-copy">Scan with a Lightning wallet and choose how much to send.</p>
           {fundingInvoice ? (
             <div className="lightning-invoice hive-wallet-address">
-              <div className="lightning-qr">
-                <QRCodeSVG value={fundingInvoice.toUpperCase()} size={228} level="M" marginSize={4} />
+              <div className="funding-hex">
+                <svg className="funding-hex-border" viewBox="0 0 320 360" fill="none" aria-hidden="true"><path d="M150 9Q160 3 170 9L303 85Q313 91 313 103V257Q313 269 303 275L170 351Q160 357 150 351L17 275Q7 269 7 257V103Q7 91 17 85Z" fill="#090c08" stroke="#d7ad58" strokeWidth="3"/></svg>
+                <div className="funding-hex-code"><QRCodeSVG aria-label="Lightning wallet funding QR code" value={fundingInvoice.toUpperCase()} size={228} level="M" marginSize={4} /></div>
               </div>
               <button className="join-copy-invoice" onClick={() => copy(fundingInvoice, "Payment code copied.")}>Copy payment code</button>
               <p className="join-fee-note">Valid for 24 hours · Your sending wallet shows applicable fees.</p>
