@@ -68,6 +68,8 @@ const DEMO_SATS_PER_DOLLAR = 1000;
 
 export default function Home() {
   const [walletIntent,setWalletIntent]=useState<"join"|"restore"|null>(null);
+  const [backupRequest,setBackupRequest]=useState(0);
+  const [walletConnected,setWalletConnected]=useState(false);
   const [screen, setScreen] = useState<Screen>("welcome");
   const [townLedger,setTownLedger]=useState(false);
   const [cellSearch,setCellSearch]=useState("");
@@ -262,7 +264,7 @@ export default function Home() {
         <button className="restart welcome-demo-link" onClick={()=>setScreen("home")}>Explore the demo</button>
       </div>}
 
-      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} onBack={()=>{if(walletIntent==="join")setScreen("keys");else{setWalletIntent(null);setScreen("welcome");}}} onOpenApp={()=>setScreen("home")}/></div>}
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={()=>setScreen("home")}/></div>}
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
@@ -300,7 +302,7 @@ export default function Home() {
         <p className="key-copy-hint">If you already took screen shots there’s no need to also copy and paste these keys.</p>
         {copyError && <p className="key-copy-status" role="status">{copyError}</p>}
         <div className="cell-card cell-key-hex"><svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0d0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><div><span>Your Cell</span><strong>D-313</strong><small>Your Hive identity</small></div></div>
-        <Button className="unlock" onClick={() => {setWalletIntent("join");setScreen("hive-wallet");}}>I’ve Saved My Keys</Button>
+        <Button className="unlock" onClick={() => {setWalletIntent("join");setScreen("home");}}>I’ve Saved My Keys</Button>
         <p className="session-note">Demo keys only—nothing sensitive is being generated or stored.</p>
       </div>}
 
@@ -441,11 +443,12 @@ export default function Home() {
       {screen === "home" && <div className="flow-screen home-screen">
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <button className="cell-badge" aria-label="Open My Wallet and buckets" onClick={()=>setScreen("buckets")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><small>My Wallet</small></button>
-        {walletIntent&&<button className="lightning-entry" onClick={()=>setScreen("hive-wallet")}><Zap size={18}/> Open your connected test wallet <ArrowUpRight size={16}/></button>}
+        {walletConnected&&<button className="lightning-entry" onClick={()=>setScreen("hive-wallet")}><Zap size={18}/> Open your connected test wallet <ArrowUpRight size={16}/></button>}
         <p className="profile-demo-caption">Demo wallet below · sample funds and Cells</p><p className="home-label">YOUR CELL · D-313</p><h2>{balance.toLocaleString()} sats</h2><p className="fiat">Spendable · {reserved.toLocaleString()} sats in buckets</p>
         <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => openPayment("receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={()=>setScreen("my-profile")}>My profile</button>
+        {walletIntent&&<button className="restart" onClick={()=>{setBackupRequest(value=>value+1);setScreen("hive-wallet");}}>Back up my wallet</button>}
         <button className="restart" onClick={() => { setKey(""); setScreen("welcome"); }}>Return to startup</button>
         <p className="custody-note"><ShieldCheck size={15}/> Your keys. Your control. Always.</p>
       </div>}

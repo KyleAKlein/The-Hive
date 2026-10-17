@@ -31,10 +31,14 @@ const REFRESH_EVENTS = new Set<SdkEvent["type"]>([
 
 export default function HiveWallet({
   intent,
+  backupRequest,
+  onConnectionChange,
   onBack,
   onOpenApp,
 }: {
   intent: "join" | "restore" | null;
+  backupRequest: number;
+  onConnectionChange: (connected: boolean) => void;
   onBack: () => void;
   onOpenApp: () => void;
 }) {
@@ -66,6 +70,14 @@ export default function HiveWallet({
       setPhase("restore");
     }
   }, [intent]);
+
+  useEffect(() => {
+    if (!backupRequest || !seed.current) return;
+    setRecovery(seed.current);
+    setBackupSaved(false);
+    setPhase("backup");
+    setStatus("Your 12-word test-wallet backup is ready.");
+  }, [backupRequest]);
 
   useEffect(
     () => () => {
@@ -120,6 +132,7 @@ export default function HiveWallet({
     if (!client) return;
     if (activeListener) await client.removeEventListener(activeListener).catch(() => false);
     await client.disconnect().catch(() => undefined);
+    onConnectionChange(false);
   }
 
   function resetWalletState() {
@@ -145,6 +158,14 @@ export default function HiveWallet({
   }
 
   async function leaveWallet() {
+    if (phase === "backup") {
+      setRecovery("");
+      setBackupSaved(false);
+      if (sdk.current) setPhase("active");
+      setStatus("");
+      onBack();
+      return;
+    }
     await run(async () => {
       await disconnectWallet();
       resetWalletState();
@@ -208,8 +229,21 @@ export default function HiveWallet({
       setRecovery("");
       setPhase("active");
       setStatus("Test wallet connected.");
+      onConnectionChange(true);
       onOpenApp();
     });
+  }
+
+  async function finishBackup() {
+    if (sdk.current) {
+      setRecovery("");
+      setBackupSaved(false);
+      setPhase("active");
+      setStatus("Wallet backup saved.");
+      onOpenApp();
+      return;
+    }
+    await connectAndOpen(seed.current);
   }
 
   const field = (label: string, element: ReactNode) => (
@@ -223,7 +257,7 @@ export default function HiveWallet({
   return (
     <div className="hive-wallet lightning-wallet">
       <button disabled={busy} onClick={leaveWallet} className="hive-wallet-back">
-        ← Welcome
+        {phase === "backup" ? "← My Cell" : "← Welcome"}
       </button>
       <p className="step">
         {phase === "backup"
@@ -237,8 +271,7 @@ export default function HiveWallet({
         <>
           <h2>Save your recovery words</h2>
           <p>
-            Before entering the app, write these 12 words down in order. They are the key to
-            reopening your test wallet.
+            Write these 12 words down in order. They are the key to reopening your test wallet.
           </p>
           <div className="hive-recovery">
             <ol>
@@ -283,9 +316,9 @@ export default function HiveWallet({
           </label>
           <button
             disabled={busy || !backupSaved}
-            onClick={() => connectAndOpen(seed.current)}
+            onClick={finishBackup}
           >
-            Open The Hive app →
+            I saved my backup →
           </button>
         </>
       )}
