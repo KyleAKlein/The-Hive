@@ -271,7 +271,7 @@ export default function HiveWallet({
           ? "FINAL BACKUP"
           : phase === "restore"
             ? "WELCOME BACK"
-            : "THE HIVE · TEST WALLET"}
+            : "THE HIVE · BITCOIN WALLET"}
       </p>
 
       {phase === "backup" && (
@@ -388,7 +388,7 @@ export default function HiveWallet({
               onClick={() =>
                 run(async () => {
                   await refreshWallet(sdk.current!);
-                  setStatus("Regtest balance, deposits, and activity refreshed.");
+                  setStatus("Bitcoin balance, deposits, and activity refreshed.");
                 })
               }
             >
@@ -443,7 +443,7 @@ export default function HiveWallet({
                 Create Lightning invoice
               </button>
               {lightningInvoice && (
-                <div className="lightning-invoice hive-regtest-address">
+                <div className="lightning-invoice hive-wallet-address">
                   <div className="lightning-qr">
                     <QRCodeSVG value={lightningInvoice.toUpperCase()} size={228} level="M" marginSize={4} />
                   </div>
@@ -474,7 +474,7 @@ export default function HiveWallet({
             Show Bitcoin address
           </button>
           {bitcoinAddress && (
-            <div className="lightning-invoice hive-regtest-address">
+            <div className="lightning-invoice hive-wallet-address">
               <div className="lightning-qr">
                 <QRCodeSVG value={bitcoinAddress} size={228} marginSize={4} />
               </div>
@@ -502,7 +502,7 @@ export default function HiveWallet({
             Show Spark receive address
           </button>
           {sparkAddress && (
-            <div className="lightning-invoice hive-regtest-address">
+            <div className="lightning-invoice hive-wallet-address">
               <div className="lightning-qr">
                 <QRCodeSVG value={sparkAddress} size={228} marginSize={4} />
               </div>
