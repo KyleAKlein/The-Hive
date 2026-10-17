@@ -5,7 +5,7 @@ import { Camera, ClipboardPaste, Type, X } from 'lucide-react';
 import { restoreWalletPrivateKey } from '@/lib/hive-wallet';
 
 function Hex({ dashed = false }: { dashed?: boolean }) {
-  return <svg className="unlock-hex-outline" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0e09" stroke="currentColor" strokeWidth="2" strokeDasharray={dashed ? '7 7' : undefined} /></svg>;
+  return <svg className="unlock-hex-outline" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0e09" stroke="currentColor" strokeWidth="2" strokeDasharray={dashed ? '24 11' : undefined} /></svg>;
 }
 
 export default function WalletUnlock({ busy, onUnlock }: { busy: boolean; onUnlock: (key: string) => Promise<void> }) {
@@ -130,10 +130,10 @@ export default function WalletUnlock({ busy, onUnlock }: { busy: boolean; onUnlo
 
   return <section className="wallet-unlock" onPaste={pasted} aria-label="Restore your Bitcoin wallet">
     <h2>Enter The Hive</h2>
-    <p className="unlock-intro">Your private key is your way in.</p>
+    <p className="unlock-intro">Paste your private key to open your wallet.</p>
     <div className="unlock-honeycomb">
       <div className="unlock-main-hex"><Hex dashed />
-        <button className="unlock-paste" disabled={disabled} onClick={() => void perform(paste)} aria-label="Paste private-key screenshot or text"><ClipboardPaste aria-hidden="true" /><strong>{disabled ? 'Opening…' : 'Paste'}</strong><span>Private-key screenshot</span></button>
+        <button className="unlock-paste" disabled={disabled} onClick={() => void perform(paste)} aria-label="Paste private-key screenshot or text"><ClipboardPaste aria-hidden="true" /><strong>{disabled ? 'Opening…' : 'Paste'}</strong><span>Private key or screenshot</span></button>
       </div>
       <button className="unlock-side-hex unlock-camera" aria-label="Scan private key with camera" disabled={disabled} onClick={() => void startCamera()}><Hex /><span><Camera aria-hidden="true" /><small>Camera</small></span></button>
       <button className="unlock-side-hex unlock-text" aria-label="Enter private key as text" aria-expanded={mode === 'text'} disabled={disabled} onClick={() => { stopCamera(); setMode(mode === 'text' ? 'paste' : 'text'); setMessage(''); }}><Hex /><span><Type aria-hidden="true" /><small>Text</small></span></button>

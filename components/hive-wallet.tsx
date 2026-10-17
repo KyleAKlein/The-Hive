@@ -9,6 +9,7 @@ import type {
 } from "@breeztech/breez-sdk-spark/ssr";
 import { QRCodeSVG } from "qrcode.react";
 import WalletUnlock from "@/components/wallet-unlock";
+import { ArrowLeft } from "lucide-react";
 import {
   checkRecovery,
   createWalletPrivateKey,
@@ -311,7 +312,7 @@ export default function HiveWallet({
       const saved = await loadRecoveryFromDevice();
       if (!saved) {
         setPhase("restore");
-        setStatus("Paste your wallet private key or recovery words to restore your wallet.");
+        setStatus("");
         return;
       }
       await connectWallet(saved, "active");
@@ -341,12 +342,12 @@ export default function HiveWallet({
   const joining = phase === "fund" || (phase === "preparing" && intent === "join");
 
   return (
-    <div className={`hive-wallet lightning-wallet${joining ? " join-screen live-join" : ""}`}>
+    <div className={`hive-wallet lightning-wallet${joining ? " join-screen live-join" : phase === "restore" ? " wallet-restore-screen" : ""}`}>
       <button disabled={busy} onClick={leaveWallet} className="hive-wallet-back">
-        {phase === "backup" ? "← My Cell" : "← Welcome"}
+        {phase === "restore" ? <ArrowLeft size={20} aria-label="Back to welcome" /> : phase === "backup" ? "← My Cell" : "← Welcome"}
       </button>
-      {joining && <div className="mini-brand"><svg className="hive-mark compact" viewBox="0 0 104 104" fill="none" aria-hidden="true"><g stroke="currentColor" strokeWidth="3.2" strokeLinejoin="round"><path d="M52 5 75 18v27L52 58 29 45V18z"/><path d="M29 45 52 58v27L29 98 6 85V58z"/><path d="M75 45 98 58v27L75 98 52 85V58z"/></g></svg><span>THE HIVE</span></div>}
-      <p className="step">
+      {(joining || phase === "restore") && <div className="mini-brand"><svg className="hive-mark compact" viewBox="0 0 104 104" fill="none" aria-hidden="true"><g stroke="currentColor" strokeWidth="3.2" strokeLinejoin="round"><path d="M52 5 75 18v27L52 58 29 45V18z"/><path d="M29 45 52 58v27L29 98 6 85V58z"/><path d="M75 45 98 58v27L75 98 52 85V58z"/></g></svg><span>THE HIVE</span></div>}
+      <p className="step" hidden={phase === "restore"}>
         {phase === "backup"
           ? "WALLET BACKUP · MY CELL"
           : phase === "preparing"

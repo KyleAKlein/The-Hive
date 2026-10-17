@@ -431,3 +431,29 @@ main.startup-stage{min-height:100svh;align-items:start;overflow:clip}
 .unlock-camera-panel>button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border-radius:0}
 .wallet-unlock .unlock-feedback{font-size:12px;line-height:1.5;color:#dac89d;margin:14px 0}
 @media(max-width:360px){.unlock-paste strong{font-size:22px}.unlock-paste span{font-size:9px}.unlock-side-hex>span>svg{width:19px;height:19px}}
+
+/* Keep the restore page aligned with the app's compact branded screens. */
+.lightning-wallet.wallet-restore-screen{margin:0 auto;padding-top:0;position:relative;text-align:center}
+.wallet-restore-screen .hive-wallet-back{position:absolute;left:-8px;top:-8px;width:40px;height:40px;min-height:40px;padding:10px!important;margin:0;display:grid;place-items:center;color:#d7ad58!important;border-radius:50%;z-index:1}
+.wallet-restore-screen>.mini-brand{justify-content:center;margin:2px 0 28px;min-height:28px;opacity:.85}
+.wallet-restore-screen>.step[hidden]{display:none}
+.wallet-restore-screen .wallet-unlock{padding-bottom:8px}
+.wallet-restore-screen .wallet-unlock h2{font-size:26px;font-weight:400;letter-spacing:-.025em;margin:0 0 10px;line-height:1.3}
+.wallet-restore-screen .unlock-intro{font-size:12px;line-height:1.5;color:#989e8c;margin:0 auto;max-width:240px}
+.wallet-restore-screen .unlock-honeycomb{max-width:330px;aspect-ratio:1/.94;margin:24px auto 0}
+.wallet-restore-screen .unlock-main-hex{width:74%;left:25%;top:5%;color:#d7ad58}
+.wallet-restore-screen .unlock-main-hex .unlock-hex-outline path{stroke-width:1.8;stroke-linecap:round;fill:#0b0e09}
+.wallet-restore-screen .unlock-side-hex{width:28%;color:#b99b59}
+.wallet-restore-screen .unlock-side-hex .unlock-hex-outline path{stroke-width:1.3;fill:#10140d}
+.wallet-restore-screen .unlock-camera{left:1%;top:14%}
+.wallet-restore-screen .unlock-text{left:1%;top:48%}
+.wallet-restore-screen .unlock-paste{gap:9px;color:#e8c780;inset:24% 15%}
+.wallet-restore-screen .unlock-paste>svg{width:25px;height:25px;stroke-width:1.4}
+.wallet-restore-screen .unlock-paste strong{font-size:24px;line-height:1.2;font-weight:400;letter-spacing:0}
+.wallet-restore-screen .unlock-paste span{font-size:9px;line-height:1.5;color:#8e9781}
+.wallet-restore-screen .unlock-side-hex>span{gap:6px}
+.wallet-restore-screen .unlock-side-hex small{font-size:9px!important;color:#bcbeaa!important}
+.wallet-restore-screen .unlock-side-hex>span>svg{width:19px;height:19px;color:#d7b56b}
+.wallet-restore-screen .unlock-photo-link{font-size:11px;color:#b3b6a3;margin:2px auto 0;min-height:40px;text-decoration-color:#62684f}
+.wallet-restore-screen .unlock-privacy{font-size:9px;color:#6e7762;margin-top:8px}
+@media(min-width:851px){.wallet-restore-screen{max-width:340px!important}}
