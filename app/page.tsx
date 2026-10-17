@@ -273,7 +273,7 @@ export default function Home() {
         </details>
       </div>}
 
-      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={()=>setScreen("home")} onFundingComplete={()=>{setWalletKeys(createWalletAccessKeys(walletRecovery));setScreen("keys");}}/></div>}
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={()=>setScreen("home")} onFundingComplete={()=>{setWalletKeys(createWalletAccessKeys(walletRecovery));setScreen("keys");}}/></div>}
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>

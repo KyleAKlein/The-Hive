@@ -8,6 +8,7 @@ import type {
   SdkEvent,
 } from "@breeztech/breez-sdk-spark/ssr";
 import { QRCodeSVG } from "qrcode.react";
+import WalletUnlock from "@/components/wallet-unlock";
 import {
   checkRecovery,
   createWalletPrivateKey,
@@ -15,7 +16,6 @@ import {
   connectHiveWallet,
   createRecovery,
   HIVE_LIGHTNING_ENABLED,
-  normalizeRecovery,
 } from "@/lib/hive-wallet";
 import {
   clearRecoveryFromDevice,
@@ -46,6 +46,7 @@ const REFRESH_EVENTS = new Set<SdkEvent["type"]>([
 ]);
 
 export default function HiveWallet({
+  visible,
   intent,
   initialRecovery,
   backupRequest,
@@ -55,6 +56,7 @@ export default function HiveWallet({
   onOpenApp,
   onFundingComplete,
 }: {
+  visible: boolean;
   intent: "join" | "restore" | null;
   initialRecovery: string;
   backupRequest: number;
@@ -68,11 +70,9 @@ export default function HiveWallet({
   const sdk = useRef<BreezSdk | null>(null);
   const listenerId = useRef<string | null>(null);
   const operationLocked = useRef(false);
-  const copiedRecovery = useRef("");
   const fundingInvoiceRef = useRef("");
   const [phase, setPhase] = useState<Phase>("restore");
   const [recovery, setRecovery] = useState("");
-  const [confirmation, setConfirmation] = useState("");
   const [backupSaved, setBackupSaved] = useState(false);
   const [info, setInfo] = useState<GetInfoResponse | null>(null);
   const [busy, setBusy] = useState(false);
@@ -193,7 +193,6 @@ export default function HiveWallet({
   function resetWalletState() {
     seed.current = "";
     setRecovery("");
-    setConfirmation("");
     setBackupSaved(false);
     setInfo(null);
     setPayments([]);
@@ -248,22 +247,6 @@ export default function HiveWallet({
     }
   }
 
-  async function pasteRecovery() {
-    let value = "";
-    try {
-      value = await navigator.clipboard.readText();
-    } catch {
-      value = copiedRecovery.current;
-    }
-    if (!value.trim()) value = copiedRecovery.current;
-    if (!value.trim()) {
-      setStatus("Click in the box and press Ctrl+V, or press and hold and choose Paste.");
-      return;
-    }
-    setConfirmation(normalizeRecovery(value));
-    setStatus("Key pasted. Tap Open my wallet.");
-  }
-
   async function connectWallet(mnemonic: string, destination: "active" | "fund") {
     seed.current = mnemonic;
     onRecoveryReady(mnemonic);
@@ -287,7 +270,6 @@ export default function HiveWallet({
       await disconnectWallet();
       throw new Error("wallet sync");
     }
-    setConfirmation("");
     setRecovery("");
     setStatus("Bitcoin wallet connected.");
     onConnectionChange(true);
@@ -419,7 +401,6 @@ export default function HiveWallet({
             className="hive-secondary"
             disabled={busy}
             onClick={() => {
-              copiedRecovery.current = seed.current;
               void copy(seed.current, "All 12 recovery words copied.");
             }}
           >
@@ -448,34 +429,7 @@ export default function HiveWallet({
         </>
       )}
 
-      {phase === "restore" && (
-        <>
-          <h2>Enter The Hive</h2>
-          <p>Paste your wallet private key to reopen your Bitcoin wallet. Recovery words also work.</p>
-          {field(
-            "Wallet private key or recovery words",
-            <textarea
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              value={confirmation}
-              onChange={(event) => setConfirmation(event.target.value)}
-              onPaste={() => setStatus("Key pasted. Tap Open my wallet.")}
-              placeholder="hive-wallet-v1:…"
-            />,
-          )}
-          <button className="hive-secondary" disabled={busy} onClick={pasteRecovery}>
-            Paste private key
-          </button>
-          <button
-            disabled={busy || !confirmation.trim()}
-            onClick={() => connectAndOpen(confirmation)}
-          >
-            Open my wallet →
-          </button>
-        </>
-      )}
+      {phase === "restore" && visible && <WalletUnlock busy={busy} onUnlock={connectAndOpen} />}
 
       {phase === "fund" && (
         <>

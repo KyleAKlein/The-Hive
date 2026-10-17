@@ -402,3 +402,32 @@ main.startup-stage{min-height:100svh;align-items:start;overflow:clip}
 .funding-hex-border{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .funding-hex-code{position:relative;width:68%;background:#fff;line-height:0}
 .funding-hex-code svg{display:block;width:100%;height:auto}
+
+/* Login: a dashed gold central hexagon with camera/text satellites. */
+.wallet-unlock{width:100%;text-align:center;padding:0 0 22px}
+.wallet-unlock h2{margin:10px 0 8px;font-size:29px;font-weight:450}
+.wallet-unlock .unlock-intro{color:#a9ad9e;font-size:13px;margin:0}
+.unlock-honeycomb{position:relative;width:100%;max-width:360px;aspect-ratio:1/.94;margin:20px auto 0}
+.unlock-main-hex{position:absolute;width:76%;aspect-ratio:208/218;left:23%;top:5%;color:#d7ad58}
+.unlock-hex-outline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.lightning-wallet .unlock-paste{position:absolute;inset:23% 16%;padding:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:transparent;color:#efd599;border:0;border-radius:16px}
+.unlock-paste>svg{width:30px;height:30px;stroke-width:1.4}
+.unlock-paste strong{font-size:25px;font-weight:450;letter-spacing:.02em}
+.unlock-paste span{font-size:10px;color:#a8ad9b;line-height:1.4;max-width:120px}
+.lightning-wallet .unlock-side-hex{position:absolute;width:29%;aspect-ratio:208/218;height:auto;padding:0;border:0;border-radius:0;background:transparent;color:#d7ad58}
+.unlock-side-hex>span{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}
+.unlock-side-hex>span>svg{width:22px;height:22px;stroke-width:1.5}
+.unlock-side-hex small{color:#ddc594!important;font-size:10px!important;line-height:1!important}
+.unlock-camera{left:0;top:13%}.unlock-text{left:0;top:49%}
+.unlock-side-hex:hover .unlock-hex-outline path{fill:#232617;stroke:#f5d183}
+.lightning-wallet .unlock-photo-link{display:block;margin:0 auto;padding:10px;background:transparent;color:#b9b69e;font-size:12px;text-decoration:underline;text-underline-offset:4px}
+.wallet-unlock .unlock-privacy{font-size:10px;color:#797f6b;margin:12px 0 0}
+.unlock-text-panel{margin:20px 0;text-align:left}
+.unlock-text-panel label{font-size:12px;margin:0 0 8px}
+.unlock-text-panel textarea{min-height:110px;font-size:13px}
+.unlock-text-panel>button{width:100%;margin-top:12px}
+.unlock-camera-panel{position:relative;margin:18px 0;border:1px solid #b49658;border-radius:16px;overflow:hidden}
+.unlock-camera-panel video{display:block;width:100%;max-height:320px;object-fit:cover;background:#080a07}
+.unlock-camera-panel>button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border-radius:0}
+.wallet-unlock .unlock-feedback{font-size:12px;line-height:1.5;color:#dac89d;margin:14px 0}
+@media(max-width:360px){.unlock-paste strong{font-size:22px}.unlock-paste span{font-size:9px}.unlock-side-hex>span>svg{width:19px;height:19px}}
