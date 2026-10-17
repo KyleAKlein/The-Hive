@@ -13,7 +13,6 @@ import {
   connectHiveWallet,
   createRecovery,
   HIVE_LIGHTNING_ENABLED,
-  HIVE_WALLET_NETWORK,
   normalizeRecovery,
 } from "@/lib/hive-wallet";
 
@@ -61,6 +60,9 @@ export default function HiveWallet({
   const [unclaimedSats, setUnclaimedSats] = useState(0);
   const [bitcoinAddress, setBitcoinAddress] = useState("");
   const [sparkAddress, setSparkAddress] = useState("");
+  const [lightningAmount, setLightningAmount] = useState("");
+  const [lightningNote, setLightningNote] = useState("");
+  const [lightningInvoice, setLightningInvoice] = useState("");
 
   useEffect(() => {
     if (intent === "join" && !seed.current) {
@@ -78,7 +80,7 @@ export default function HiveWallet({
     setRecovery(seed.current);
     setBackupSaved(false);
     setPhase("backup");
-    setStatus("Your 12-word test-wallet backup is ready.");
+    setStatus("Your 12-word wallet backup is ready.");
   }, [backupRequest]);
 
   useEffect(
@@ -103,7 +105,7 @@ export default function HiveWallet({
       await task();
     } catch {
       setStatus(
-        "The regtest wallet operation could not be completed. Your recovery words have not changed. Check the connection and try again.",
+        "The wallet operation could not be completed. Your recovery words have not changed. Check the connection and try again.",
       );
     } finally {
       operationLocked.current = false;
@@ -148,6 +150,9 @@ export default function HiveWallet({
     setUnclaimedSats(0);
     setBitcoinAddress("");
     setSparkAddress("");
+    setLightningAmount("");
+    setLightningNote("");
+    setLightningInvoice("");
     setPhase("restore");
   }
 
@@ -211,7 +216,7 @@ export default function HiveWallet({
     }
     await run(async () => {
       seed.current = mnemonic;
-      setStatus("Opening your test wallet…");
+      setStatus("Opening your Bitcoin wallet…");
       const connected = await connectHiveWallet(mnemonic);
       sdk.current = connected;
       try {
@@ -230,7 +235,7 @@ export default function HiveWallet({
       setConfirmation("");
       setRecovery("");
       setPhase("active");
-      setStatus("Test wallet connected.");
+      setStatus("Bitcoin wallet connected.");
       onConnectionChange(true);
       onOpenApp();
     });
@@ -273,7 +278,7 @@ export default function HiveWallet({
         <>
           <h2>Save your recovery words</h2>
           <p>
-            Write these 12 words down in order. They are the key to reopening your test wallet.
+            Write these 12 words down in order. They are the key to reopening your Bitcoin wallet.
           </p>
           <div className="hive-recovery">
             <ol>
@@ -306,7 +311,7 @@ export default function HiveWallet({
             Keep the written copy private. Anyone with these words can open this wallet.
           </p>
           <p className="lightning-muted">
-            This first release is locked to regtest. Regtest coins have no real-world value.
+            This recovery controls real funds. Keep it offline and never share it with anyone.
           </p>
           <label className="hive-save-check">
             <input
@@ -328,7 +333,7 @@ export default function HiveWallet({
       {phase === "restore" && (
         <>
           <h2>Open your wallet</h2>
-          <p>Paste your 12 recovery words below. Older 24-word Hive test wallets also work.</p>
+          <p>Paste your 12 recovery words below. Older 24-word Hive wallets also work.</p>
           {field(
             "Recovery words",
             <textarea
@@ -356,15 +361,15 @@ export default function HiveWallet({
 
       {phase === "active" && info && (
         <>
-          <h2>Your Hive test wallet</h2>
+          <h2>Your Hive Bitcoin wallet</h2>
           <div className="lightning-summary">
-            <span>{HIVE_WALLET_NETWORK} · test funds only</span>
+            <span>Bitcoin mainnet · real funds</span>
             <strong>{info.balanceSats.toLocaleString()} sats</strong>
-            <small>Reported by Breez Spark regtest</small>
+            <small>Reported by Breez Spark</small>
           </div>
           <p className="hive-key-warning">
-            Regtest lab: these coins have no monetary value. Mainnet, real payments, signup
-            fees, and Cell registration are disabled.
+            Real Bitcoin: start with a tiny amount. Anyone with your 12 recovery words can
+            spend every sat in this wallet.
           </p>
 
           <details>
@@ -391,10 +396,68 @@ export default function HiveWallet({
             </button>
           </div>
 
-          <h3>Fund with test sats</h3>
+          {HIVE_LIGHTNING_ENABLED && (
+            <>
+              <h3>Receive with Lightning</h3>
+              <p>Create a real Lightning invoice. Share it only with the person paying you.</p>
+              {field(
+                "Amount in sats",
+                <input
+                  inputMode="numeric"
+                  value={lightningAmount}
+                  onChange={(event) => setLightningAmount(event.target.value)}
+                  placeholder="100"
+                />,
+              )}
+              {field(
+                "Note (optional)",
+                <input
+                  value={lightningNote}
+                  maxLength={120}
+                  onChange={(event) => setLightningNote(event.target.value)}
+                  placeholder="What is this payment for?"
+                />,
+              )}
+              <button
+                disabled={busy}
+                onClick={() => {
+                  const amount = Number(lightningAmount);
+                  if (!/^\d+$/.test(lightningAmount) || !Number.isSafeInteger(amount) || amount < 1 || amount > 100_000_000) {
+                    setStatus("Enter a whole number from 1 to 100,000,000 sats.");
+                    return;
+                  }
+                  void run(async () => {
+                    const result = await sdk.current!.receivePayment({
+                      paymentMethod: {
+                        type: "bolt11Invoice",
+                        amountSats: amount,
+                        description: lightningNote.trim(),
+                        expirySecs: 3600,
+                      },
+                    });
+                    setLightningInvoice(result.paymentRequest);
+                    setStatus("Real Lightning invoice created. It expires in one hour.");
+                  });
+                }}
+              >
+                Create Lightning invoice
+              </button>
+              {lightningInvoice && (
+                <div className="lightning-invoice hive-regtest-address">
+                  <div className="lightning-qr">
+                    <QRCodeSVG value={lightningInvoice.toUpperCase()} size={228} level="M" marginSize={4} />
+                  </div>
+                  <textarea readOnly aria-label="Lightning invoice" value={lightningInvoice} />
+                  <button onClick={() => copy(lightningInvoice, "Lightning invoice copied.")}>Copy invoice</button>
+                </div>
+              )}
+            </>
+          )}
+
+          <h3>Receive on Bitcoin</h3>
           <p>
-            Generate a regtest Bitcoin address, then paste it into the Lightspark faucet.
-            Deposits normally need confirmations before the wallet can claim them.
+            Generate a new on-chain Bitcoin address. Network mining and deposit-claim fees
+            may apply, and deposits require confirmations.
           </p>
           <button
             disabled={busy}
@@ -404,34 +467,26 @@ export default function HiveWallet({
                   paymentMethod: { type: "bitcoinAddress", newAddress: undefined },
                 });
                 setBitcoinAddress(result.paymentRequest);
-                setStatus("Regtest funding address ready. No funds have been requested yet.");
+                setStatus("Bitcoin deposit address ready. Verify it before sending.");
               })
             }
           >
-            Show regtest funding address
+            Show Bitcoin address
           </button>
           {bitcoinAddress && (
             <div className="lightning-invoice hive-regtest-address">
               <div className="lightning-qr">
                 <QRCodeSVG value={bitcoinAddress} size={228} marginSize={4} />
               </div>
-              <textarea readOnly aria-label="Regtest Bitcoin funding address" value={bitcoinAddress} />
+              <textarea readOnly aria-label="Bitcoin funding address" value={bitcoinAddress} />
               <div className="lightning-buttons">
                 <button onClick={() => copy(bitcoinAddress)}>Copy address</button>
-                <a
-                  className="hive-faucet-link"
-                  href="https://app.lightspark.com/regtest-faucet"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Open regtest faucet ↗
-                </a>
               </div>
             </div>
           )}
 
-          <h3>Receive from a Spark test wallet</h3>
-          <p>Use this address for wallet-to-wallet Spark transfers on the regtest network.</p>
+          <h3>Receive from a Spark wallet</h3>
+          <p>Use this address for direct wallet-to-wallet Spark transfers.</p>
           <button
             disabled={busy}
             onClick={() =>
@@ -440,7 +495,7 @@ export default function HiveWallet({
                   paymentMethod: { type: "sparkAddress" },
                 });
                 setSparkAddress(result.paymentRequest);
-                setStatus("Spark regtest receive address ready.");
+                setStatus("Spark receive address ready.");
               })
             }
           >
@@ -451,7 +506,7 @@ export default function HiveWallet({
               <div className="lightning-qr">
                 <QRCodeSVG value={sparkAddress} size={228} marginSize={4} />
               </div>
-              <textarea readOnly aria-label="Spark regtest receive address" value={sparkAddress} />
+              <textarea readOnly aria-label="Spark receive address" value={sparkAddress} />
               <button onClick={() => copy(sparkAddress)}>Copy Spark address</button>
             </div>
           )}
@@ -463,17 +518,7 @@ export default function HiveWallet({
             </p>
           )}
 
-          {!HIVE_LIGHTNING_ENABLED && (
-            <div className="lightning-summary">
-              <b>Lightning stays off in regtest</b>
-              <p>
-                Breez regtest does not have a developed Lightning Network. BOLT11 send and
-                receive will be enabled only after a separate tiny-value mainnet test.
-              </p>
-            </div>
-          )}
-
-          <h3>Test-wallet activity</h3>
+          <h3>Wallet activity</h3>
           {payments.length ? (
             payments.map((payment) => (
               <div className="lightning-transaction" key={payment.id}>
@@ -485,7 +530,7 @@ export default function HiveWallet({
               </div>
             ))
           ) : (
-            <p>No regtest wallet activity yet.</p>
+            <p>No wallet activity yet.</p>
           )}
         </>
       )}

@@ -40,10 +40,10 @@ test('wallet storage fingerprints are deterministic and separate wallets',async(
  assert.equal(await recoveryFingerprint(known),await recoveryFingerprint(known.toUpperCase()));
  assert.notEqual(await recoveryFingerprint(known),await recoveryFingerprint(createRecovery()));
 });
-test('embedded wallet is locked to keyless regtest with Lightning disabled',async()=>{
- assert.equal(HIVE_WALLET_NETWORK,'regtest');
- assert.equal(HIVE_LIGHTNING_ENABLED,false);
- assert.match(await walletStorageDir(known),/^hive-regtest-[a-f0-9]{24}$/);
+test('embedded wallet is configured for Breez Spark mainnet with Lightning enabled',async()=>{
+ assert.equal(HIVE_WALLET_NETWORK,'mainnet');
+ assert.equal(HIVE_LIGHTNING_ENABLED,true);
+ assert.match(await walletStorageDir(known),/^hive-mainnet-[a-f0-9]{24}$/);
 });
 test('wallet WebAssembly validates locally without a credential or funding',async()=>{
  const bytes=readFileSync('node_modules/@breeztech/breez-sdk-spark/web/breez_sdk_spark_wasm_bg.wasm');

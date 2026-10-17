@@ -12,19 +12,6 @@ import { QRCodeSVG } from "qrcode.react";
 
 type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town" | "my-profile" | "member" | "invoice" | "lightning" | "hive-wallet";
 
-function FeesExplained() {
-  return <details className="fee-details">
-    <summary>Fees explained <span aria-hidden="true">⌄</span></summary>
-    <div className="fee-content">
-      <h3>The sting, explained.</h3>
-      <p><strong>$1 to join, once.</strong> Paid in bitcoin. This signup fee goes to The Hive and is not part of your spendable balance.</p>
-      <p><strong>Sending on Bitcoin.</strong> Blockchain fees vary with network demand. Your sending wallet shows its fee before you confirm.</p>
-      <p><strong>Using Lightning.</strong> Payments generally have much smaller network fees. The amount depends on the payment and its route.</p>
-      <p className="fee-footnote">These are demo estimates, not live quotes. The total includes estimated costs, not a payment request: your sending wallet charges its Bitcoin fee separately. Lightning costs depend on the funding method and provider; both network fees may not apply.</p>
-    </div>
-  </details>;
-}
-
 function HiveMark({ compact = false }: { compact?: boolean }) {
   return <svg className={`hive-mark ${compact ? "compact" : ""}`} viewBox="0 0 104 104" fill="none" role="img" aria-label="The Hive logo"><g stroke="currentColor" strokeWidth="3.2" strokeLinejoin="round"><path d="M52 5 75 18v27L52 58 29 45V18z"/><path d="M29 45 52 58v27L29 98 6 85V58z"/><path d="M75 45 98 58v27L75 98 52 85V58z"/></g></svg>;
 }
@@ -268,11 +255,11 @@ export default function Home() {
         <div className="welcome-choices">
           <button className="welcome-choice choice-join" onClick={() => setScreen("join")}>
             <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><defs><linearGradient id="join-gold" x1="30" y1="15" x2="190" y2="210" gradientUnits="userSpaceOnUse"><stop stopColor="#ffe29a"/><stop offset=".52" stopColor="#f7c65e"/><stop offset="1" stopColor="#dca135"/></linearGradient></defs><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="url(#join-gold)" stroke="#ffdf8c" strokeWidth="1.2"/></svg>
-            <span><strong>JOIN<br/>THE HIVE</strong><small>Start a<br/>regtest wallet.</small></span>
+            <span><strong>JOIN<br/>THE HIVE</strong><small>Start a<br/>Bitcoin wallet.</small></span>
           </button>
           <button className="welcome-choice choice-enter" onClick={() => {setWalletIntent("restore");setScreen("hive-wallet");}}>
             <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0d0a" fillOpacity=".85" stroke="#d7ad58" strokeWidth="1.5"/></svg>
-            <span><strong>ENTER<br/>THE HIVE</strong><small>Restore my<br/>regtest wallet.</small></span>
+            <span><strong>ENTER<br/>THE HIVE</strong><small>Restore my<br/>Bitcoin wallet.</small></span>
           </button>
         </div>
         <button className="restart welcome-demo-link" onClick={()=>setScreen("home")}>Explore the demo</button>
@@ -448,7 +435,7 @@ export default function Home() {
       {screen === "home" && <div className="flow-screen home-screen">
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <button className="cell-badge" aria-label="Open My Wallet and buckets" onClick={()=>setScreen("buckets")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><small>My Wallet</small></button>
-        {walletConnected&&<button className="lightning-entry" onClick={()=>setScreen("hive-wallet")}><Zap size={18}/> Open your connected test wallet <ArrowUpRight size={16}/></button>}
+        {walletConnected&&<button className="lightning-entry" onClick={()=>setScreen("hive-wallet")}><Zap size={18}/> Open your Bitcoin wallet <ArrowUpRight size={16}/></button>}
         <p className="profile-demo-caption">Demo wallet below · sample funds and Cells</p><p className="home-label">YOUR CELL · D-313</p><h2>{balance.toLocaleString()} sats</h2><p className="fiat">Spendable · {reserved.toLocaleString()} sats in buckets</p>
         <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => openPayment("receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
