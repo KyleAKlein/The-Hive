@@ -252,11 +252,11 @@ export default function Home() {
         <div className="welcome-choices">
           <button className="welcome-choice choice-join" onClick={() => {setWalletIntent("join");setScreen("hive-wallet");}}>
             <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><defs><linearGradient id="join-gold" x1="30" y1="15" x2="190" y2="210" gradientUnits="userSpaceOnUse"><stop stopColor="#ffe29a"/><stop offset=".52" stopColor="#f7c65e"/><stop offset="1" stopColor="#dca135"/></linearGradient></defs><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="url(#join-gold)" stroke="#ffdf8c" strokeWidth="1.2"/></svg>
-            <span><strong>JOIN<br/>THE HIVE</strong><small>Your wallet.<br/>Your community.</small></span>
+            <span><strong>JOIN<br/>THE HIVE</strong><small>Start a<br/>regtest wallet.</small></span>
           </button>
           <button className="welcome-choice choice-enter" onClick={() => {setWalletIntent("restore");setScreen("hive-wallet");}}>
             <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0d0a" fillOpacity=".85" stroke="#d7ad58" strokeWidth="1.5"/></svg>
-            <span><strong>ENTER<br/>THE HIVE</strong><small>Use my<br/>saved key.</small></span>
+            <span><strong>ENTER<br/>THE HIVE</strong><small>Restore my<br/>regtest wallet.</small></span>
           </button>
         </div>
         <button className="restart welcome-demo-link" onClick={()=>setScreen("home")}>Explore the demo</button>

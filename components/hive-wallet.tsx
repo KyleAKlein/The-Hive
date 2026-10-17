@@ -1,55 +1,512 @@
 "use client";
-import { useEffect, useRef, useState } from 'react';
-import type { BreezSdk, GetInfoResponse, Network, Payment, PrepareSendPaymentResponse } from '@breeztech/breez-sdk-spark/ssr';
-import { QRCodeSVG } from 'qrcode.react';
-import { backupMatches, checkRecovery, connectHiveWallet, createRecovery } from '@/lib/hive-wallet';
-import { reviewInvoice, satsToMsats } from '@/lib/lightning';
 
-type Phase = 'restore'|'backup'|'verify'|'configure'|'active';
-export default function HiveWallet({intent,onBack}:{intent:'join'|'restore'|null;onBack:()=>void}) {
- const seed=useRef('');
- const sdk=useRef<BreezSdk|null>(null);
- const locked=useRef(false);
- const [phase,setPhase]=useState<Phase>('restore');
- const [recovery,setRecovery]=useState('');
- const [confirmation,setConfirmation]=useState('');
- const [checks,setChecks]=useState([false,false,false]);
- const [expanded,setExpanded]=useState(false);
- const [apiKey,setApiKey]=useState('');
- const [network,setNetwork]=useState<Network>('mainnet');
- const [info,setInfo]=useState<GetInfoResponse|null>(null);
- const [busy,setBusy]=useState(false);
- const [status,setStatus]=useState('');
- const [invoiceAmount,setInvoiceAmount]=useState('');
- const [invoiceNote,setInvoiceNote]=useState('');
- const [invoice,setInvoice]=useState('');
- const [invoiceFee,setInvoiceFee]=useState('');
- const [payments,setPayments]=useState<Payment[]>([]);
- const [sendInput,setSendInput]=useState('');
- const [prepared,setPrepared]=useState<PrepareSendPaymentResponse|null>(null);
- const [pending,setPending]=useState(false);
- const [idempotencyKey,setIdempotencyKey]=useState('');
- const [quoteTime,setQuoteTime]=useState(0);
- useEffect(()=>{if(intent==='join'&&!seed.current){seed.current=createRecovery();setRecovery(seed.current);setPhase('backup');setStatus('Recovery words generated on this device. Network wallet activation comes after backup verification.');}else if(intent==='restore'&&!seed.current){setPhase('restore');}},[intent]);
- useEffect(()=>()=>{void sdk.current?.disconnect();seed.current='';},[]);
- async function run(task:()=>Promise<void>){if(locked.current)return;locked.current=true;setBusy(true);try{await task();}catch{setStatus('The wallet operation could not be completed. Your recovery words have not changed. Check the service configuration and connection before retrying.');}finally{locked.current=false;setBusy(false);}}
- async function refresh(){if(!sdk.current)return;const data=await sdk.current.getInfo({ensureSynced:true});setInfo(data);const history=await sdk.current.listPayments({limit:20,assetFilter:{type:"bitcoin"}});setPayments(history.payments);const key='hive-embedded-pending-'+network+'-'+data.identityPubkey;const stored=localStorage.getItem(key);if(stored){setPending(true);try{const entry=JSON.parse(stored);if(entry.paymentId){const result=await sdk.current.getPayment({paymentId:entry.paymentId});if(result.payment.status==='completed'||result.payment.status==='failed'){localStorage.removeItem(key);setPending(false);setStatus('Previous payment status: '+result.payment.status);}}}catch{setStatus('A previous payment needs reconciliation. Sending stays disabled; check wallet activity.');}}else setPending(false);}
- const copy=async(value:string)=>{try{await navigator.clipboard.writeText(value);setStatus('Copied.');}catch{setStatus('Clipboard unavailable. Select the text and copy it manually.');}};
- async function lockWallet(){if(locked.current)return;await run(async()=>{if(sdk.current)await sdk.current.disconnect();sdk.current=null;seed.current='';setRecovery('');setConfirmation('');setChecks([false,false,false]);setApiKey('');setInfo(null);setInvoice('');setInvoiceNote('');setPayments([]);setSendInput('');setPrepared(null);setPending(false);setIdempotencyKey('');setPhase('restore');setStatus('Wallet locked. Use your saved Hive recovery words to return.');});}
- const field=(label:string,element:React.ReactNode)=><label>{label}{element}</label>;
- const hasSession=!!seed.current;
- return <div className="hive-wallet lightning-wallet">
- <button disabled={busy} onClick={onBack} className="hive-wallet-back">← Welcome</button><p className="step">{phase==='backup'?'JOIN · 1 OF 3':phase==='verify'?'JOIN · 2 OF 3':phase==='configure'?'JOIN · 3 OF 3':'THE HIVE'}</p>
- {phase==='backup'&&<><h2>Save your private key</h2><p>Joining creates your wallet’s recovery key here on your device. These 24 words are your private access and recovery key.</p><div className="hive-recovery"><ol>{recovery.split(' ').map((word,i)=><li key={i}><small>{i+1}</small>{word}</li>)}</ol><button onClick={()=>setExpanded(v=>!v)}>{expanded?'Hide private QR':'Expand private QR'}</button>{expanded&&<div className="lightning-qr hive-private-qr"><QRCodeSVG value={recovery} size={240} marginSize={4}/></div>}<button onClick={()=>copy(recovery)}>Copy private recovery key</button></div><p className="hive-key-warning">Anyone with these words can access your funds. Keep an offline copy. Hive cannot recover them for you. A screenshot or clipboard copy may be synced by your device.</p><p className="lightning-muted">Your public wallet details will appear after network activation. A public key alone is not a Lightning payment request.</p><button disabled={busy} onClick={()=>{setExpanded(false);setPhase('verify');setRecovery('');}}>I’ve saved my key →</button></>}
- {phase==='verify'&&<><h2>Verify your saved key</h2><p>Paste or type the recovery words you saved, in order.</p>{field('Your 24 recovery words',<textarea autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} value={confirmation} onChange={e=>setConfirmation(e.target.value)}/>)}<div className="hive-checks">{['I saved a private copy of my recovery key.','I understand anyone with this key can control my wallet.','I understand Hive cannot replace a lost recovery key.'].map((label,i)=><label key={label}><input type="checkbox" checked={checks[i]} onChange={e=>setChecks(old=>old.map((v,n)=>n===i?e.target.checked:v))}/><span>{label}</span></label>)}</div><button disabled={busy||checks.some(v=>!v)||!confirmation.trim()} onClick={()=>{try{if(!backupMatches(seed.current,confirmation)){setStatus('Those words do not match. Check your saved key and try again.');return;}setConfirmation('');setRecovery('');setPhase('configure');setStatus('Backup verified. Wallet service activation is the remaining step.');}catch{setStatus('Check all 24 words and their order.');}}}>Verify and continue →</button><button className="hive-secondary" onClick={()=>{setRecovery(seed.current);setPhase('backup');}}>Show my key again</button></>}
- {phase==='restore'&&<><h2>Enter The Hive</h2><p>Unlock the wallet created when you joined. Use Hive recovery words only; don’t import another wallet’s seed.</p>{field('Private recovery key',<textarea autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} value={confirmation} onChange={e=>setConfirmation(e.target.value)}/>)}<button disabled={busy||!confirmation.trim()} onClick={()=>{try{seed.current=checkRecovery(confirmation);setConfirmation('');setPhase('configure');setStatus('Recovery key accepted locally. Connect to the wallet service to recover its balance.');}catch{setStatus('Enter valid Hive recovery words in the original order.');}}}>Unlock my wallet</button></>}
- {phase==='configure'&&<><h2>Backup verified</h2><div className="lightning-summary"><b>Wallet activation pending</b><p>Your recovery key is ready. Hive’s wallet service still needs developer configuration. No signup payment has been charged, no Cell number has been assigned, and there is no deposit address yet.</p></div><p>Keep your saved recovery key. You can leave and return with that same key; refreshing clears it from this page.</p><details><summary>Developer service setup</summary><p>One-time integration testing: provide a Breez SDK API key for this session. This is a service credential, not a wallet key. It is sent directly to the SDK’s service and kept in page memory only.</p>{field('Breez developer API key',<input type="password" value={apiKey} autoComplete="off" onChange={e=>setApiKey(e.target.value)}/>)}{field('Wallet network',<select value={network} disabled={busy} onChange={e=>setNetwork(e.target.value as Network)}><option value="mainnet">Bitcoin mainnet · real funds</option><option value="regtest">Regtest · development only</option><option value="signet">Signet · test network</option></select>)}<button disabled={busy||!apiKey.trim()} onClick={()=>run(async()=>{setStatus('Loading the wallet engine and connecting…');const connected=await connectHiveWallet(seed.current,apiKey,network);sdk.current=connected;try{await refresh();}catch{await connected.disconnect();sdk.current=null;throw new Error('wallet sync');}setApiKey('');setPhase('active');setStatus('Wallet connected. This integration still needs an end-to-end test. Cell registration is not connected.');})}>Activate wallet service</button></details></>}
- {phase==='active'&&info&&<><h2>Your Hive wallet</h2><div className="lightning-summary"><span>{network==='mainnet'?'Bitcoin mainnet · real funds':`${network} · test funds`}</span><strong>{info.balanceSats.toLocaleString()} sats</strong><small>Wallet balance · separate from the sample demo</small></div><p className="hive-key-warning">Integration preview · No end-to-end wallet test has been completed. Cell registration and signup fees are not active.</p><details><summary>Public wallet identity</summary><code>{info.identityPubkey}</code><button onClick={()=>copy(info.identityPubkey)}>Copy public identity</button><p className="lightning-muted">Share an invoice to receive Lightning payments. This identity is not a Lightning address.</p></details><button disabled={busy} onClick={()=>run(async()=>{await refresh();setStatus('Wallet balance and payments refreshed.');})}>Refresh wallet</button>
- <h3>Receive sats</h3>{field('Amount in sats',<input inputMode="numeric" value={invoiceAmount} onChange={e=>setInvoiceAmount(e.target.value)}/>)}{field('Note (optional)',<input maxLength={120} value={invoiceNote} onChange={e=>setInvoiceNote(e.target.value)}/>)}<button disabled={busy} onClick={()=>run(async()=>{let sats:number;try{sats=satsToMsats(invoiceAmount)/1000;}catch{setStatus('Enter a whole amount from 1 to 100,000,000 sats.');return;}const result=await sdk.current!.receivePayment({paymentMethod:{type:'bolt11Invoice',description:invoiceNote.trim(),amountSats:sats,expirySecs:3600}});const checked=reviewInvoice(result.paymentRequest,network);if(checked.msats!==sats*1000)throw new Error('amount');setInvoice(result.paymentRequest);setInvoiceFee(result.fee.toString());setStatus('Invoice created. Payment has not been confirmed.');})}>Create an invoice</button>{invoice&&<div className="lightning-invoice"><div className="lightning-qr"><QRCodeSVG value={invoice.toUpperCase()} size={228} marginSize={4}/></div><textarea readOnly aria-label="Receiving invoice" value={invoice}/><p>Reported receive fee: {invoiceFee} sats</p><div className="lightning-buttons"><button onClick={()=>copy(invoice)}>Copy invoice</button><button onClick={()=>run(async()=>{if(navigator.share)await navigator.share({title:'Hive payment request',text:invoice});else await copy(invoice);})}>Share invoice</button></div><p>Use Refresh wallet to check payment activity. Creating or sharing an invoice does not mean it has been paid.</p></div>}
- <h3>Send sats</h3>{field('Lightning invoice',<textarea disabled={busy||pending} value={sendInput} onChange={e=>{setSendInput(e.target.value);setPrepared(null);}} placeholder="Paste a fixed-amount invoice"/>)}<button disabled={busy||pending||!sendInput.trim()} onClick={()=>run(async()=>{const review=reviewInvoice(sendInput,network);if(review.msats%1000!==0){setStatus('Use a whole-sat invoice for this wallet.');return;}const quote=await sdk.current!.prepareSendPayment({paymentRequest:{type:'input',input:review.invoice}});if(quote.paymentMethod.type!=='bolt11Invoice'||quote.amount.toString()!==String(review.msats/1000))throw new Error('quote mismatch');setPrepared(quote);setQuoteTime(Date.now());setIdempotencyKey(crypto.randomUUID());setStatus('Review the quoted amount and fees.');})}>Review payment</button>{prepared&&prepared.paymentMethod.type==='bolt11Invoice'&&<div className="lightning-review"><b>{prepared.amount.toString()} sats</b><p>Lightning fee: {prepared.paymentMethod.lightningFeeSats} sats · Spark fee: {prepared.paymentMethod.sparkTransferFeeSats??0} sats</p><button disabled={busy||pending} onClick={()=>run(async()=>{reviewInvoice(sendInput,network);if(Date.now()-quoteTime>60000){setPrepared(null);setStatus('Quote expired. Review again for current fees.');return;}const journalKey='hive-embedded-pending-'+network+'-'+info.identityPubkey;localStorage.setItem(journalKey,JSON.stringify({idempotencyKey,invoice:sendInput}));setPending(true);setStatus('Payment submitted. Checking the wallet result…');try{const result=await sdk.current!.sendPayment({prepareResponse:prepared,idempotencyKey});if(result.payment.status==='pending')localStorage.setItem(journalKey,JSON.stringify({idempotencyKey,paymentId:result.payment.id,invoice:sendInput}));else{localStorage.removeItem(journalKey);setPending(false);}setStatus(result.payment.status==='completed'?'Payment completed according to the wallet.':`Wallet payment status: ${result.payment.status}. Check activity before any retry.`);setPrepared(null);setSendInput('');await refresh();}catch{setPrepared(null);setStatus('Payment outcome is unknown. Sending is blocked, including after reconnecting in this browser. Check wallet activity before any retry.');}})}>Confirm payment</button></div>}{pending&&<p className="hive-key-warning">A payment may still be processing. Sending is disabled until the payment outcome is resolved. Check wallet activity before taking further action.</p>}
- <h3>Payment activity</h3>{payments.length?payments.map(payment=><div className="lightning-transaction" key={payment.id}><span>{payment.paymentType==='receive'?'Received':'Sent'} · {payment.status}<small>{payment.method}</small></span><b>{payment.amount.toString()} sats</b></div>):<p>No payments reported.</p>}
- </>}
- {hasSession&&<button className="hive-secondary" disabled={busy||phase==='backup'||phase==='verify'} onClick={lockWallet}>Lock wallet</button>}
- {status&&<p className="lightning-status" role="status">{busy?'Working… ':''}{status}</p>}
- </div>;
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import type {
+  BreezSdk,
+  GetInfoResponse,
+  Payment,
+  SdkEvent,
+} from "@breeztech/breez-sdk-spark/ssr";
+import { QRCodeSVG } from "qrcode.react";
+import {
+  backupMatches,
+  checkRecovery,
+  connectHiveWallet,
+  createRecovery,
+  HIVE_LIGHTNING_ENABLED,
+  HIVE_WALLET_NETWORK,
+} from "@/lib/hive-wallet";
+
+type Phase = "restore" | "backup" | "verify" | "configure" | "active";
+
+const REFRESH_EVENTS = new Set<SdkEvent["type"]>([
+  "synced",
+  "unclaimedDeposits",
+  "claimedDeposits",
+  "newDeposits",
+  "paymentPending",
+  "paymentSucceeded",
+  "paymentFailed",
+]);
+
+export default function HiveWallet({
+  intent,
+  onBack,
+}: {
+  intent: "join" | "restore" | null;
+  onBack: () => void;
+}) {
+  const seed = useRef("");
+  const sdk = useRef<BreezSdk | null>(null);
+  const listenerId = useRef<string | null>(null);
+  const operationLocked = useRef(false);
+  const [phase, setPhase] = useState<Phase>("restore");
+  const [recovery, setRecovery] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [checks, setChecks] = useState([false, false, false]);
+  const [info, setInfo] = useState<GetInfoResponse | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState("");
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [unclaimedCount, setUnclaimedCount] = useState(0);
+  const [unclaimedSats, setUnclaimedSats] = useState(0);
+  const [bitcoinAddress, setBitcoinAddress] = useState("");
+  const [sparkAddress, setSparkAddress] = useState("");
+
+  useEffect(() => {
+    if (intent === "join" && !seed.current) {
+      seed.current = createRecovery();
+      setRecovery(seed.current);
+      setPhase("backup");
+      setStatus("Recovery words were generated on this device. No wallet has been funded.");
+    } else if (intent === "restore" && !seed.current) {
+      setPhase("restore");
+    }
+  }, [intent]);
+
+  useEffect(
+    () => () => {
+      const client = sdk.current;
+      const activeListener = listenerId.current;
+      seed.current = "";
+      if (!client) return;
+      void (async () => {
+        if (activeListener) await client.removeEventListener(activeListener).catch(() => false);
+        await client.disconnect().catch(() => undefined);
+      })();
+    },
+    [],
+  );
+
+  async function run(task: () => Promise<void>) {
+    if (operationLocked.current) return;
+    operationLocked.current = true;
+    setBusy(true);
+    try {
+      await task();
+    } catch {
+      setStatus(
+        "The regtest wallet operation could not be completed. Your recovery words have not changed. Check the connection and try again.",
+      );
+    } finally {
+      operationLocked.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function refreshWallet(client: BreezSdk) {
+    const [walletInfo, history, unclaimed] = await Promise.all([
+      client.getInfo({ ensureSynced: false }),
+      client.listPayments({ limit: 20, assetFilter: { type: "bitcoin" } }),
+      client.listUnclaimedDeposits({}),
+    ]);
+    if (sdk.current !== client) return;
+    setInfo(walletInfo);
+    setPayments(history.payments);
+    setUnclaimedCount(unclaimed.deposits.length);
+    setUnclaimedSats(
+      unclaimed.deposits.reduce((total, deposit) => total + deposit.amountSats, 0),
+    );
+  }
+
+  async function disconnectWallet() {
+    const client = sdk.current;
+    const activeListener = listenerId.current;
+    listenerId.current = null;
+    sdk.current = null;
+    if (!client) return;
+    if (activeListener) await client.removeEventListener(activeListener).catch(() => false);
+    await client.disconnect().catch(() => undefined);
+  }
+
+  function resetWalletState() {
+    seed.current = "";
+    setRecovery("");
+    setConfirmation("");
+    setChecks([false, false, false]);
+    setInfo(null);
+    setPayments([]);
+    setUnclaimedCount(0);
+    setUnclaimedSats(0);
+    setBitcoinAddress("");
+    setSparkAddress("");
+    setPhase("restore");
+  }
+
+  async function lockWallet() {
+    await run(async () => {
+      await disconnectWallet();
+      resetWalletState();
+      setStatus("Wallet locked. Use your saved Hive recovery words to return.");
+    });
+  }
+
+  async function leaveWallet() {
+    await run(async () => {
+      await disconnectWallet();
+      resetWalletState();
+      setStatus("");
+      onBack();
+    });
+  }
+
+  async function copy(value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setStatus("Copied.");
+    } catch {
+      setStatus("Clipboard unavailable. Select the text and copy it manually.");
+    }
+  }
+
+  const field = (label: string, element: ReactNode) => (
+    <label>
+      {label}
+      {element}
+    </label>
+  );
+  const hasSession = Boolean(seed.current);
+
+  return (
+    <div className="hive-wallet lightning-wallet">
+      <button disabled={busy} onClick={leaveWallet} className="hive-wallet-back">
+        ← Welcome
+      </button>
+      <p className="step">
+        {phase === "backup"
+          ? "REGTEST · 1 OF 3"
+          : phase === "verify"
+            ? "REGTEST · 2 OF 3"
+            : phase === "configure"
+              ? "REGTEST · 3 OF 3"
+              : "THE HIVE · REGTEST"}
+      </p>
+
+      {phase === "backup" && (
+        <>
+          <h2>Save your recovery words</h2>
+          <p>
+            This creates a self-custodial test wallet on your device. Write these 24 words
+            down in order and keep them private.
+          </p>
+          <div className="hive-recovery">
+            <ol>
+              {recovery.split(" ").map((word, index) => (
+                <li key={index}>
+                  <small>{index + 1}</small>
+                  {word}
+                </li>
+              ))}
+            </ol>
+          </div>
+          <p className="hive-key-warning">
+            Do not screenshot or paste these words into email, chat, cloud notes, or a
+            password field. Anyone with them can control this wallet.
+          </p>
+          <p className="lightning-muted">
+            This first release is locked to regtest. Regtest coins have no real-world value.
+          </p>
+          <button
+            disabled={busy}
+            onClick={() => {
+              setPhase("verify");
+              setRecovery("");
+            }}
+          >
+            I wrote them down →
+          </button>
+        </>
+      )}
+
+      {phase === "verify" && (
+        <>
+          <h2>Verify your saved words</h2>
+          <p>Type the 24 words you saved, in order.</p>
+          {field(
+            "Your 24 recovery words",
+            <textarea
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              value={confirmation}
+              onChange={(event) => setConfirmation(event.target.value)}
+            />,
+          )}
+          <div className="hive-checks">
+            {[
+              "I wrote down a private offline copy.",
+              "I understand anyone with these words can control the wallet.",
+              "I understand Hive cannot replace lost recovery words.",
+            ].map((label, index) => (
+              <label key={label}>
+                <input
+                  type="checkbox"
+                  checked={checks[index]}
+                  onChange={(event) =>
+                    setChecks((old) =>
+                      old.map((value, item) => (item === index ? event.target.checked : value)),
+                    )
+                  }
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+          <button
+            disabled={busy || checks.some((value) => !value) || !confirmation.trim()}
+            onClick={() => {
+              try {
+                if (!backupMatches(seed.current, confirmation)) {
+                  setStatus("Those words do not match. Check your saved copy and try again.");
+                  return;
+                }
+                setConfirmation("");
+                setRecovery("");
+                setPhase("configure");
+                setStatus("Backup verified. The regtest wallet is ready to start.");
+              } catch {
+                setStatus("Check all 24 words and their order.");
+              }
+            }}
+          >
+            Verify and continue →
+          </button>
+          <button
+            className="hive-secondary"
+            onClick={() => {
+              setRecovery(seed.current);
+              setPhase("backup");
+            }}
+          >
+            Show the words again
+          </button>
+        </>
+      )}
+
+      {phase === "restore" && (
+        <>
+          <h2>Enter the regtest wallet</h2>
+          <p>Use recovery words created by this Hive regtest wallet.</p>
+          {field(
+            "Recovery words",
+            <textarea
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              value={confirmation}
+              onChange={(event) => setConfirmation(event.target.value)}
+            />,
+          )}
+          <button
+            disabled={busy || !confirmation.trim()}
+            onClick={() => {
+              try {
+                seed.current = checkRecovery(confirmation);
+                setConfirmation("");
+                setPhase("configure");
+                setStatus("Recovery words accepted locally. Start regtest to restore the wallet.");
+              } catch {
+                setStatus("Enter valid Hive recovery words in the original order.");
+              }
+            }}
+          >
+            Continue
+          </button>
+        </>
+      )}
+
+      {phase === "configure" && (
+        <>
+          <h2>Start the test wallet</h2>
+          <div className="lightning-summary">
+            <b>Regtest · test funds only</b>
+            <p>
+              Breez regtest does not require an API key. It cannot hold or move real bitcoin,
+              and no Hive signup fee will be charged.
+            </p>
+          </div>
+          <p>
+            The wallet engine will keep its working state in this browser. Your recovery words
+            remain the key to restoring it.
+          </p>
+          <button
+            disabled={busy}
+            onClick={() =>
+              run(async () => {
+                setStatus("Loading the wallet engine and connecting to Breez regtest…");
+                const connected = await connectHiveWallet(seed.current);
+                sdk.current = connected;
+                try {
+                  listenerId.current = await connected.addEventListener({
+                    onEvent(event) {
+                      if (REFRESH_EVENTS.has(event.type) && sdk.current === connected) {
+                        void refreshWallet(connected).catch(() => undefined);
+                      }
+                    },
+                  });
+                  await refreshWallet(connected);
+                } catch {
+                  await disconnectWallet();
+                  throw new Error("wallet sync");
+                }
+                setPhase("active");
+                setStatus("Regtest wallet connected. No real bitcoin is enabled.");
+              })
+            }
+          >
+            Start regtest wallet
+          </button>
+        </>
+      )}
+
+      {phase === "active" && info && (
+        <>
+          <h2>Your Hive test wallet</h2>
+          <div className="lightning-summary">
+            <span>{HIVE_WALLET_NETWORK} · test funds only</span>
+            <strong>{info.balanceSats.toLocaleString()} sats</strong>
+            <small>Reported by Breez Spark regtest</small>
+          </div>
+          <p className="hive-key-warning">
+            Regtest lab: these coins have no monetary value. Mainnet, real payments, signup
+            fees, and Cell registration are disabled.
+          </p>
+
+          <details>
+            <summary>Public wallet identity</summary>
+            <code>{info.identityPubkey}</code>
+            <button onClick={() => copy(info.identityPubkey)}>Copy public identity</button>
+            <p className="lightning-muted">
+              This identity is public, but it is not a Lightning invoice or Bitcoin address.
+            </p>
+          </details>
+
+          <div className="lightning-buttons">
+            <button
+              disabled={busy}
+              onClick={() =>
+                run(async () => {
+                  await refreshWallet(sdk.current!);
+                  setStatus("Regtest balance, deposits, and activity refreshed.");
+                })
+              }
+            >
+              Refresh wallet
+            </button>
+          </div>
+
+          <h3>Fund with test sats</h3>
+          <p>
+            Generate a regtest Bitcoin address, then paste it into the Lightspark faucet.
+            Deposits normally need confirmations before the wallet can claim them.
+          </p>
+          <button
+            disabled={busy}
+            onClick={() =>
+              run(async () => {
+                const result = await sdk.current!.receivePayment({
+                  paymentMethod: { type: "bitcoinAddress", newAddress: undefined },
+                });
+                setBitcoinAddress(result.paymentRequest);
+                setStatus("Regtest funding address ready. No funds have been requested yet.");
+              })
+            }
+          >
+            Show regtest funding address
+          </button>
+          {bitcoinAddress && (
+            <div className="lightning-invoice hive-regtest-address">
+              <div className="lightning-qr">
+                <QRCodeSVG value={bitcoinAddress} size={228} marginSize={4} />
+              </div>
+              <textarea readOnly aria-label="Regtest Bitcoin funding address" value={bitcoinAddress} />
+              <div className="lightning-buttons">
+                <button onClick={() => copy(bitcoinAddress)}>Copy address</button>
+                <a
+                  className="hive-faucet-link"
+                  href="https://app.lightspark.com/regtest-faucet"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open regtest faucet ↗
+                </a>
+              </div>
+            </div>
+          )}
+
+          <h3>Receive from a Spark test wallet</h3>
+          <p>Use this address for wallet-to-wallet Spark transfers on the regtest network.</p>
+          <button
+            disabled={busy}
+            onClick={() =>
+              run(async () => {
+                const result = await sdk.current!.receivePayment({
+                  paymentMethod: { type: "sparkAddress" },
+                });
+                setSparkAddress(result.paymentRequest);
+                setStatus("Spark regtest receive address ready.");
+              })
+            }
+          >
+            Show Spark receive address
+          </button>
+          {sparkAddress && (
+            <div className="lightning-invoice hive-regtest-address">
+              <div className="lightning-qr">
+                <QRCodeSVG value={sparkAddress} size={228} marginSize={4} />
+              </div>
+              <textarea readOnly aria-label="Spark regtest receive address" value={sparkAddress} />
+              <button onClick={() => copy(sparkAddress)}>Copy Spark address</button>
+            </div>
+          )}
+
+          {unclaimedCount > 0 && (
+            <p className="lightning-status" role="status">
+              {unclaimedCount} deposit{unclaimedCount === 1 ? "" : "s"} awaiting claim ·{" "}
+              {unclaimedSats.toLocaleString()} sats
+            </p>
+          )}
+
+          {!HIVE_LIGHTNING_ENABLED && (
+            <div className="lightning-summary">
+              <b>Lightning stays off in regtest</b>
+              <p>
+                Breez regtest does not have a developed Lightning Network. BOLT11 send and
+                receive will be enabled only after a separate tiny-value mainnet test.
+              </p>
+            </div>
+          )}
+
+          <h3>Test-wallet activity</h3>
+          {payments.length ? (
+            payments.map((payment) => (
+              <div className="lightning-transaction" key={payment.id}>
+                <span>
+                  {payment.paymentType === "receive" ? "Received" : "Sent"} · {payment.status}
+                  <small>{payment.method}</small>
+                </span>
+                <b>{payment.amount.toString()} sats</b>
+              </div>
+            ))
+          ) : (
+            <p>No regtest wallet activity yet.</p>
+          )}
+        </>
+      )}
+
+      {hasSession && phase !== "backup" && phase !== "verify" && (
+        <button className="hive-secondary" disabled={busy} onClick={lockWallet}>
+          Lock wallet
+        </button>
+      )}
+      {status && (
+        <p className="lightning-status" role="status" aria-live="polite">
+          {busy ? "Working… " : ""}
+          {status}
+        </p>
+      )}
+    </div>
+  );
 }

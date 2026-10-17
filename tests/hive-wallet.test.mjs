@@ -1,7 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createRecovery, checkRecovery, normalizeRecovery, backupMatches, recoveryFingerprint, connectHiveWallet } from '../lib/hive-wallet.ts';
+import {
+ createRecovery,
+ checkRecovery,
+ normalizeRecovery,
+ backupMatches,
+ recoveryFingerprint,
+ walletStorageDir,
+ HIVE_LIGHTNING_ENABLED,
+ HIVE_WALLET_NETWORK,
+} from '../lib/hive-wallet.ts';
 const known='abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
 test('new recovery keys have 24 valid words and are unique',()=>{
  const first=createRecovery(),second=createRecovery();
@@ -23,8 +32,10 @@ test('wallet storage fingerprints are deterministic and separate wallets',async(
  assert.equal(await recoveryFingerprint(known),await recoveryFingerprint(known.toUpperCase()));
  assert.notEqual(await recoveryFingerprint(known),await recoveryFingerprint(createRecovery()));
 });
-test('activation without a service credential stops before loading the SDK',async()=>{
- await assert.rejects(connectHiveWallet(known,'','mainnet'),/configuration/);
+test('embedded wallet is locked to keyless regtest with Lightning disabled',async()=>{
+ assert.equal(HIVE_WALLET_NETWORK,'regtest');
+ assert.equal(HIVE_LIGHTNING_ENABLED,false);
+ assert.match(await walletStorageDir(known),/^hive-regtest-[a-f0-9]{24}$/);
 });
 test('wallet WebAssembly validates locally without a credential or funding',async()=>{
  const bytes=readFileSync('node_modules/@breeztech/breez-sdk-spark/web/breez_sdk_spark_wasm_bg.wasm');

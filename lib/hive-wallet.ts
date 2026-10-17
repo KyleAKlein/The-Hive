@@ -2,6 +2,9 @@ import { generateMnemonic, validateMnemonic } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english.js';
 import type { BreezSdk, Network } from '@breeztech/breez-sdk-spark/ssr';
 
+export const HIVE_WALLET_NETWORK = 'regtest' as const satisfies Network;
+export const HIVE_LIGHTNING_ENABLED = false;
+
 export const normalizeRecovery = (value: string) => value.normalize('NFKD').trim().toLowerCase().replace(/\s+/g, ' ');
 export function createRecovery() { return generateMnemonic(wordlist, 256); }
 export function checkRecovery(value: string) {
@@ -17,14 +20,19 @@ export async function recoveryFingerprint(value: string) {
  return Array.from(new Uint8Array(digest).slice(0, 12), b => b.toString(16).padStart(2, '0')).join('');
 }
 let initialization: Promise<void> | undefined;
-export async function connectHiveWallet(recovery: string, apiKey: string, network: Network): Promise<BreezSdk> {
- if (!apiKey.trim()) throw new Error('Wallet service configuration is required.');
+export async function walletStorageDir(recovery: string) {
+ const fingerprint = await recoveryFingerprint(recovery);
+ return `hive-${HIVE_WALLET_NETWORK}-${fingerprint}`;
+}
+export async function connectHiveWallet(recovery: string): Promise<BreezSdk> {
  const mnemonic = checkRecovery(recovery);
  const module = await import('@breeztech/breez-sdk-spark/ssr');
  initialization ??= module.default().catch(error => {initialization=undefined;throw error;});
  await initialization;
- const config = module.defaultConfig(network);
- config.apiKey = apiKey.trim();
- const fingerprint = await recoveryFingerprint(mnemonic);
- return module.connect({config, seed:{type:'mnemonic',mnemonic},storageDir:`hive-${network}-${fingerprint}`});
+ const config = module.defaultConfig(HIVE_WALLET_NETWORK);
+ return module.connect({
+  config,
+  seed:{type:'mnemonic',mnemonic,passphrase:undefined},
+  storageDir:await walletStorageDir(mnemonic),
+ });
 }
