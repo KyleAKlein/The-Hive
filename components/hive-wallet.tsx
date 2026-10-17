@@ -14,7 +14,6 @@ import {
   createRecovery,
   HIVE_LIGHTNING_ENABLED,
   normalizeRecovery,
-  usdToSats,
 } from "@/lib/hive-wallet";
 import {
   clearRecoveryFromDevice,
@@ -85,9 +84,6 @@ export default function HiveWallet({
   const [lightningNote, setLightningNote] = useState("");
   const [lightningInvoice, setLightningInvoice] = useState("");
   const [fundingInvoice, setFundingInvoice] = useState("");
-  const [fundingSats, setFundingSats] = useState(0);
-  const [fundingUsdRate, setFundingUsdRate] = useState(0);
-  const [fundingFeeSats, setFundingFeeSats] = useState(0);
   const [fundingPaid, setFundingPaid] = useState(false);
 
   useEffect(() => {
@@ -168,27 +164,17 @@ export default function HiveWallet({
     setFundingInvoice("");
     fundingInvoiceRef.current = "";
     setFundingPaid(false);
-    setStatus("Getting a current $5 Bitcoin quote…");
-    const { rates } = await client.listFiatRates();
-    const usd = rates.find((rate) => rate.coin.toUpperCase() === "USD");
-    if (!usd || !Number.isFinite(usd.value) || usd.value <= 0) {
-      throw new Error("The current Bitcoin price is unavailable.");
-    }
-    const amountSats = usdToSats(5, usd.value);
+    setStatus("Preparing your receiving QR…");
     const result = await client.receivePayment({
       paymentMethod: {
         type: "bolt11Invoice",
-        amountSats,
-        description: "Join The Hive · $5 wallet funding",
-        expirySecs: 3600,
+        description: "Join The Hive · wallet funding",
+        expirySecs: 86400,
       },
     });
     fundingInvoiceRef.current = result.paymentRequest;
     setFundingInvoice(result.paymentRequest);
-    setFundingSats(amountSats);
-    setFundingUsdRate(usd.value);
-    setFundingFeeSats(Number(result.fee));
-    setStatus("Your real Lightning funding invoice is ready for one hour.");
+    setStatus("");
   }
 
   async function disconnectWallet() {
@@ -218,9 +204,6 @@ export default function HiveWallet({
     setLightningInvoice("");
     fundingInvoiceRef.current = "";
     setFundingInvoice("");
-    setFundingSats(0);
-    setFundingUsdRate(0);
-    setFundingFeeSats(0);
     setFundingPaid(false);
     setPhase("restore");
   }
@@ -491,26 +474,19 @@ export default function HiveWallet({
         <>
           <h2>Join The Hive</h2>
           <p className="flow-copy">Start your Hive wallet by sending Bitcoin to this QR code.</p>
-          <p className="join-fee-copy">Send about $5 with a Lightning wallet.</p>
-          <p className="join-fee-note">Your deposit funds your wallet. The receiving fee is shown below.</p>
+          <p className="join-fee-copy">Scan with a Lightning wallet and choose how much to send.</p>
           {fundingInvoice ? (
             <div className="lightning-invoice hive-wallet-address">
               <div className="lightning-qr">
                 <QRCodeSVG value={fundingInvoice.toUpperCase()} size={228} level="M" marginSize={4} />
               </div>
-              <b>{fundingSats.toLocaleString()} sats · about $5.00</b>
-              <button className="join-copy-invoice" onClick={() => copy(fundingInvoice, "Funding invoice copied.")}>Copy invoice</button>
-              <details className="join-invoice-details"><summary>View Lightning invoice</summary><textarea readOnly aria-label="Join The Hive Lightning invoice" value={fundingInvoice} /></details>
-              <div className="payment-fees fee-estimate">
-                <div><span>Wallet funding</span><strong>About $5.00</strong></div>
-                <div><span>Receiving fee</span><span>{fundingFeeSats.toLocaleString()} sats</span></div>
-                <div className="fee-total"><span>Added to your wallet</span><strong>{Math.max(0, fundingSats - fundingFeeSats).toLocaleString()} sats</strong></div>
-                <small>Quote: ${fundingUsdRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} per BTC. Your sending wallet may charge its own fee.</small>
-              </div>
+              <button className="join-copy-invoice" onClick={() => copy(fundingInvoice, "Payment code copied.")}>Copy payment code</button>
+              <p className="join-fee-note">Valid for 24 hours · Your sending wallet shows applicable fees.</p>
             </div>
           ) : (
-            <button disabled={busy} onClick={() => run(() => createFundingInvoice(sdk.current!))}>
-              Create a new $5 invoice
+            busy ? <p role="status">Preparing your QR code…</p> :
+            <button disabled={!sdk.current} onClick={() => run(() => createFundingInvoice(sdk.current!))}>
+              Retry loading QR code
             </button>
           )}
           <div className="waiting">
