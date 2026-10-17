@@ -227,7 +227,7 @@ export default function HiveWallet({
       </button>
       <p className="step">
         {phase === "backup"
-          ? "ONE QUICK STEP"
+          ? "FINAL BACKUP"
           : phase === "restore"
             ? "WELCOME BACK"
             : "THE HIVE · TEST WALLET"}
@@ -237,8 +237,8 @@ export default function HiveWallet({
         <>
           <h2>Save your recovery words</h2>
           <p>
-            Write these 12 words down in order. They are the key to reopening your test
-            wallet.
+            Before entering the app, write these 12 words down in order. They are the key to
+            reopening your test wallet.
           </p>
           <div className="hive-recovery">
             <ol>

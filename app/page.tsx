@@ -250,7 +250,7 @@ export default function Home() {
         </header>
         <p className="welcome-promise">Small Payments.<br/><span>A Bigger World.</span></p>
         <div className="welcome-choices">
-          <button className="welcome-choice choice-join" onClick={() => {setWalletIntent("join");setScreen("hive-wallet");}}>
+          <button className="welcome-choice choice-join" onClick={() => setScreen("join")}>
             <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><defs><linearGradient id="join-gold" x1="30" y1="15" x2="190" y2="210" gradientUnits="userSpaceOnUse"><stop stopColor="#ffe29a"/><stop offset=".52" stopColor="#f7c65e"/><stop offset="1" stopColor="#dca135"/></linearGradient></defs><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="url(#join-gold)" stroke="#ffdf8c" strokeWidth="1.2"/></svg>
             <span><strong>JOIN<br/>THE HIVE</strong><small>Start a<br/>regtest wallet.</small></span>
           </button>
@@ -262,7 +262,7 @@ export default function Home() {
         <button className="restart welcome-demo-link" onClick={()=>setScreen("home")}>Explore the demo</button>
       </div>}
 
-      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} onBack={()=>{setWalletIntent(null);setScreen("welcome");}} onOpenApp={()=>setScreen("home")}/></div>}
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} onBack={()=>{if(walletIntent==="join")setScreen("keys");else{setWalletIntent(null);setScreen("welcome");}}} onOpenApp={()=>setScreen("home")}/></div>}
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
@@ -300,7 +300,7 @@ export default function Home() {
         <p className="key-copy-hint">If you already took screen shots there’s no need to also copy and paste these keys.</p>
         {copyError && <p className="key-copy-status" role="status">{copyError}</p>}
         <div className="cell-card cell-key-hex"><svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0d0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><div><span>Your Cell</span><strong>D-313</strong><small>Your Hive identity</small></div></div>
-        <Button className="unlock" onClick={() => setScreen("home")}>I’ve Saved My Keys</Button>
+        <Button className="unlock" onClick={() => {setWalletIntent("join");setScreen("hive-wallet");}}>I’ve Saved My Keys</Button>
         <p className="session-note">Demo keys only—nothing sensitive is being generated or stored.</p>
       </div>}
 
