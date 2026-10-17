@@ -11,6 +11,7 @@ import {
  walletStorageDir,
  HIVE_LIGHTNING_ENABLED,
  HIVE_WALLET_NETWORK,
+ usdToSats,
 } from '../lib/hive-wallet.ts';
 const known='abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
 test('new recovery keys have 12 valid words and are unique',()=>{
@@ -44,6 +45,12 @@ test('embedded wallet is configured for Breez Spark mainnet with Lightning enabl
  assert.equal(HIVE_WALLET_NETWORK,'mainnet');
  assert.equal(HIVE_LIGHTNING_ENABLED,true);
  assert.match(await walletStorageDir(known),/^hive-mainnet-[a-f0-9]{24}$/);
+});
+test('live dollar quotes convert to a whole sat amount',()=>{
+ assert.equal(usdToSats(5,100000),5000);
+ assert.equal(usdToSats(5,66666.67),7500);
+ assert.throws(()=>usdToSats(5,0));
+ assert.throws(()=>usdToSats(Number.NaN,100000));
 });
 test('wallet WebAssembly validates locally without a credential or funding',async()=>{
  const bytes=readFileSync('node_modules/@breeztech/breez-sdk-spark/web/breez_sdk_spark_wasm_bg.wasm');

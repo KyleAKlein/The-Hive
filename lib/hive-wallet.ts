@@ -7,6 +7,12 @@ export const HIVE_WALLET_NETWORK = 'mainnet' as const satisfies Network;
 export const HIVE_LIGHTNING_ENABLED = true;
 
 export const normalizeRecovery = (value: string) => value.normalize('NFKD').trim().toLowerCase().replace(/\s+/g, ' ');
+export function usdToSats(usdAmount: number, usdPerBitcoin: number) {
+ if (!Number.isFinite(usdAmount) || usdAmount <= 0 || !Number.isFinite(usdPerBitcoin) || usdPerBitcoin <= 0) {
+  throw new Error('A positive dollar amount and Bitcoin price are required.');
+ }
+ return Math.max(1, Math.round((usdAmount / usdPerBitcoin) * 100_000_000));
+}
 export function createRecovery() { return generateMnemonic(wordlist, 128); }
 export function checkRecovery(value: string) {
  const normalized = normalizeRecovery(value);

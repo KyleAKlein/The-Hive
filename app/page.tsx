@@ -70,12 +70,15 @@ export default function Home() {
   const [profileNotice,setProfileNotice]=useState("");
   const [anonymous,setAnonymous]=useState(false);
   const [privacyReady,setPrivacyReady]=useState(false);
+  const [profileName,setProfileName]=useState("Kyle Klein");
+  const [profileTag,setProfileTag]=useState("Hive member");
+  const [profileCell,setProfileCell]=useState("D-313");
   const [selectedMember,setSelectedMember]=useState("D-042");
-  useEffect(()=>{try{setAnonymous(localStorage.getItem("hive-profile-anonymous")==="true");}catch{}setPrivacyReady(true);},[]);
-  useEffect(()=>{if(privacyReady)try{localStorage.setItem("hive-profile-anonymous",String(anonymous));}catch{}},[anonymous,privacyReady]);
-  const directoryMembers=[{cell:"D-008",name:"Anonymous Cell",tag:""},{cell:"D-042",name:"Avery Chen",tag:"Poet"},{cell:"D-090",name:"Jordan Ellis",tag:"Musician"},{cell:"D-117",name:"Marcus Reed",tag:"Comedian"},{cell:"D-226",name:"Sam Rivera",tag:"Skater"},{cell:"D-313",name:anonymous?"Anonymous Cell":"Kyle Klein",tag:anonymous?"":"Hive member"},{cell:"D-405",name:"Anonymous Cell",tag:""}];
+  useEffect(()=>{let cancelled=false;(async()=>{try{const response=await fetch("/api/profile",{cache:"no-store"});if(!response.ok)throw new Error("profile unavailable");const body=await response.json() as {profile?:{name?:string;tag?:string;cellNumber?:string;anonymous?:boolean}};if(cancelled)return;const profile=body.profile;if(profile){if(profile.name)setProfileName(profile.name);if(profile.tag)setProfileTag(profile.tag);if(profile.cellNumber)setProfileCell(profile.cellNumber);setAnonymous(Boolean(profile.anonymous));}}catch{try{setAnonymous(localStorage.getItem("hive-profile-anonymous")==="true");}catch{}}finally{if(!cancelled)setPrivacyReady(true);}})();return()=>{cancelled=true;};},[]);
+  useEffect(()=>{if(!privacyReady)return;try{localStorage.setItem("hive-profile-anonymous",String(anonymous));}catch{}void fetch("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({anonymous})}).catch(()=>undefined);},[anonymous,privacyReady]);
+  const directoryMembers=[{cell:"D-008",name:"Anonymous Cell",tag:""},{cell:"D-042",name:"Avery Chen",tag:"Poet"},{cell:"D-090",name:"Jordan Ellis",tag:"Musician"},{cell:"D-117",name:"Marcus Reed",tag:"Comedian"},{cell:"D-226",name:"Sam Rivera",tag:"Skater"},{cell:profileCell,name:anonymous?"Anonymous Cell":profileName,tag:anonymous?"":profileTag},{cell:"D-405",name:"Anonymous Cell",tag:""}];
   const visibleMembers=directoryMembers.filter(m=>`${m.name} ${m.cell} ${m.tag}`.toLowerCase().includes(cellSearch.trim().toLowerCase()));
-  const openMember=(cell:string)=>{if(cell==="D-117")setScreen("profile");else if(cell==="D-313")setScreen("my-profile");else{setSelectedMember(cell);setScreen("member");}};
+  const openMember=(cell:string)=>{if(cell==="D-117")setScreen("profile");else if(cell===profileCell)setScreen("my-profile");else{setSelectedMember(cell);setScreen("member");}};
   const lookupCell=()=>{if(visibleMembers.length===1)openMember(visibleMembers[0].cell);};
   const member=directoryMembers.find(m=>m.cell===selectedMember)!;
   const [key, setKey] = useState("");
@@ -95,7 +98,8 @@ export default function Home() {
     setWalletKeys(createHiveKeyPair(recovery));
     setCopiedKey(null);
     setCopyError("");
-    setScreen("keys");
+    setWalletIntent("join");
+    setScreen("hive-wallet");
   };
 
   const [invoiceValue,setInvoiceValue]=useState("");
@@ -265,15 +269,15 @@ export default function Home() {
         <button className="restart welcome-demo-link" onClick={()=>setScreen("home")}>Explore the demo</button>
       </div>}
 
-      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={()=>setScreen("home")}/></div>}
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={()=>setScreen("home")} onFundingComplete={()=>setScreen("keys")}/></div>}
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">STEP 1 OF 2</p><h2>Join The Hive</h2><p className="flow-copy">No payment is required. Your keys are created privately on this device.</p>
+        <p className="step">STEP 1 OF 4</p><h2>Join The Hive</h2><p className="flow-copy">Create and back up your wallet, then fund it with about $5 over Lightning.</p>
         <div className="creation-emblem"><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><KeyRound/></div>
-        <div className="check-list"><p><span><Check/></span>No bitcoin payment</p><p><span><Check/></span>Generated with secure browser randomness</p><p><span><Check/></span>Private key stays on this device</p></div>
-        <Button className="demo-forward" onClick={createWalletKeys}>Create my keys <span>Continue →</span></Button>
-        <div className="progress"><span className="active">1<i>Create</i></span><span>2<i>Save keys</i></span></div>
+        <div className="check-list"><p><span><Check/></span>The $5 stays in your wallet</p><p><span><Check/></span>Generated with secure browser randomness</p><p><span><Check/></span>Private keys stay on this device</p></div>
+        <Button className="demo-forward" onClick={createWalletKeys}>Create my wallet <span>Continue →</span></Button>
+        <div className="progress"><span className="active">1<i>Create</i></span><span>2<i>Backup</i></span><span>3<i>Fund</i></span><span>4<i>Keys</i></span></div>
       </div>}
 
       {screen === "creating" && <div className="flow-screen creating-screen">
@@ -287,9 +291,9 @@ export default function Home() {
       </div>}
 
       {screen === "keys" && walletKeys && <div className="flow-screen keys-screen">
-        <button className="back" onClick={() => setScreen("join")} aria-label="Back"><ArrowLeft/></button>
+        <button className="back" onClick={() => setScreen(walletConnected ? "hive-wallet" : "join")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">STEP 2 OF 2</p><h2>Save Your Hive Identity Keys</h2><p className="flow-copy key-save-instruction">Open and screen shot both QR codes. Keep the private screenshot out of cloud backups.</p><div className="key-save-arrows" aria-hidden="true"><svg viewBox="0 0 300 42" fill="none"><path d="M130 3C105 3 78 10 72 33M62 23l10 12 12-9M170 3c25 0 52 7 58 30m-12-7 12 9 10-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+        <p className="step">STEP 4 OF 4</p><h2>Save Your Hive Identity Keys</h2><p className="flow-copy key-save-instruction">Payment confirmed. Open and screen shot both QR codes. Keep the private screenshot out of cloud backups.</p><div className="key-save-arrows" aria-hidden="true"><svg viewBox="0 0 300 42" fill="none"><path d="M130 3C105 3 78 10 72 33M62 23l10 12 12-9M170 3c25 0 52 7 58 30m-12-7 12 9 10-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
         <div className="key-pair"><div className="key-card private"><button className="mini-qr real-key-qr" aria-label="Open Hive identity private key" onClick={() => setScreen("private-key")}><QRCodeSVG value={walletKeys.privateKey} size={112} marginSize={2}/></button><b>PRIVATE KEY</b><small>Secret Hive identity key. It does not replace your 12-word wallet backup.</small><div className="inline-key-copy"><code>{walletKeys.privateKey}</code><button onClick={()=>copyKey("private")} aria-label="Copy private key">{copiedKey==="private"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="private"?"Copied":"Copy"}</span></button></div></div><div className="key-card public"><button className="mini-qr real-key-qr" aria-label="Open Hive identity public key" onClick={() => setScreen("public-key")}><QRCodeSVG value={walletKeys.publicKey} size={112} marginSize={2}/></button><b>PUBLIC KEY</b><small>Hive identity key. Safe to share, but it is not a Bitcoin address.</small><div className="inline-key-copy"><code>{walletKeys.publicKey}</code><button onClick={()=>copyKey("public")} aria-label="Copy public key">{copiedKey==="public"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="public"?"Copied":"Copy"}</span></button></div></div></div>
         <p className="key-copy-hint">Your 12 recovery words—not these QR codes—restore your Bitcoin wallet. Get them later from “Back up my wallet” on My Cell.</p>
         {copyError && <p className="key-copy-status" role="status">{copyError}</p>}
@@ -416,7 +420,7 @@ export default function Home() {
         {!visibleMembers.length&&<p className="directory-copy">No Cells found. Try another name, Cell number or tag.</p>}
         <p className="profile-demo-caption">Demo directory · sample members.<br/>Anonymous Cells keep their number and hide their name and tag.</p>
       </div>}
-      {screen === "my-profile" && <div className="flow-screen public-profile"><div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to directory"><ArrowLeft/></button><span>MY PROFILE</span><Pencil size={18}/></div><div className="own-profile-avatar">KK</div><h2>Kyle Klein</h2><p className="profile-role">D-313 · Hive member</p><section className="profile-privacy"><h3>Directory privacy</h3><label><span><b>Appear as Anonymous Cell</b><small>Hide your name and tag. Your Cell number stays visible and can still receive tips.</small></span><input type="checkbox" role="switch" checked={anonymous} onChange={e=>setAnonymous(e.target.checked)}/></label><p className="directory-section-label">HOW YOU APPEAR IN THE DIRECTORY</p><div className="privacy-preview"><span><b>{anonymous?"Anonymous Cell":"Kyle Klein"}</b>{!anonymous&&<small>Hive member</small>}</span><em>D-313</em></div><p className="profile-demo-caption" role="status">{anonymous?"Your name and tag are hidden.":"Your name and tag are visible."} Saved on this browser.</p></section><button className="own-directory-link" onClick={()=>{setCellSearch("D-313");setScreen("directory");}}>View my directory listing <ArrowUpRight size={16}/></button></div>}
+      {screen === "my-profile" && <div className="flow-screen public-profile"><div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to directory"><ArrowLeft/></button><span>MY PROFILE</span><Pencil size={18}/></div><div className="own-profile-avatar">{profileName.split(" ").map(part=>part[0]).join("").slice(0,2).toUpperCase()}</div><h2>{profileName}</h2><p className="profile-role">{profileCell} · {profileTag}</p><section className="profile-privacy"><h3>Directory privacy</h3><label><span><b>Appear as Anonymous Cell</b><small>Hide your name and tag. Your Cell number stays visible and can still receive tips.</small></span><input type="checkbox" role="switch" checked={anonymous} onChange={e=>setAnonymous(e.target.checked)}/></label><p className="directory-section-label">HOW YOU APPEAR IN THE DIRECTORY</p><div className="privacy-preview"><span><b>{anonymous?"Anonymous Cell":profileName}</b>{!anonymous&&<small>{profileTag}</small>}</span><em>{profileCell}</em></div><p className="profile-demo-caption" role="status">{anonymous?"Your name and tag are hidden.":"Your name and tag are visible."} Saved to your signed-in Hive profile.</p></section><button className="own-directory-link" onClick={()=>{setCellSearch(profileCell);setScreen("directory");}}>View my directory listing <ArrowUpRight size={16}/></button></div>}
       {screen === "member" && <div className="flow-screen public-profile"><div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to directory"><ArrowLeft/></button><span>PUBLIC PROFILE</span><Users size={18}/></div><div className="own-profile-avatar">{member.name==="Anonymous Cell"?<Users/>:member.name.split(" ").map(n=>n[0]).join("")}</div><h2>{member.name}</h2><p className="profile-role">{member.cell}{member.tag&&` · ${member.tag}`}</p><p className="profile-bio">{member.name==="Anonymous Cell"?"This member keeps their identity private.":"Part of the Hive."}</p><div className="profile-actions"><button className="profile-tip" onClick={()=>{openPayment("send");setRecipient(member.cell);}}><Send size={16}/>Send a tip</button></div><p className="profile-demo-caption">Demo member · simulated payments only.</p></div>}
       {screen === "profile" && <div className="flow-screen public-profile">
         <div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to The Hive"><ArrowLeft size={20}/></button><span>PUBLIC PROFILE</span><button className={savedCell?"saved":""} onClick={()=>setSavedCell(!savedCell)} aria-label={savedCell?"Unsave Cell":"Save Cell"} aria-pressed={savedCell}><Bookmark size={20} fill={savedCell?"currentColor":"none"}/></button></div>

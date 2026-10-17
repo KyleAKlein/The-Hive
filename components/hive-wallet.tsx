@@ -14,9 +14,20 @@ import {
   createRecovery,
   HIVE_LIGHTNING_ENABLED,
   normalizeRecovery,
+  usdToSats,
 } from "@/lib/hive-wallet";
 
-type Phase = "restore" | "backup" | "active";
+type Phase = "restore" | "backup" | "fund" | "active";
+
+function isCompletedFundingPayment(payment: Payment, invoice: string) {
+  return Boolean(
+    invoice &&
+      payment.paymentType === "receive" &&
+      payment.status === "completed" &&
+      payment.details?.type === "lightning" &&
+      payment.details.invoice.toLowerCase() === invoice.toLowerCase(),
+  );
+}
 
 const REFRESH_EVENTS = new Set<SdkEvent["type"]>([
   "synced",
@@ -35,6 +46,7 @@ export default function HiveWallet({
   onConnectionChange,
   onBack,
   onOpenApp,
+  onFundingComplete,
 }: {
   intent: "join" | "restore" | null;
   initialRecovery: string;
@@ -42,12 +54,14 @@ export default function HiveWallet({
   onConnectionChange: (connected: boolean) => void;
   onBack: () => void;
   onOpenApp: () => void;
+  onFundingComplete: () => void;
 }) {
   const seed = useRef("");
   const sdk = useRef<BreezSdk | null>(null);
   const listenerId = useRef<string | null>(null);
   const operationLocked = useRef(false);
   const copiedRecovery = useRef("");
+  const fundingInvoiceRef = useRef("");
   const [phase, setPhase] = useState<Phase>("restore");
   const [recovery, setRecovery] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -63,6 +77,11 @@ export default function HiveWallet({
   const [lightningAmount, setLightningAmount] = useState("");
   const [lightningNote, setLightningNote] = useState("");
   const [lightningInvoice, setLightningInvoice] = useState("");
+  const [fundingInvoice, setFundingInvoice] = useState("");
+  const [fundingSats, setFundingSats] = useState(0);
+  const [fundingUsdRate, setFundingUsdRate] = useState(0);
+  const [fundingFeeSats, setFundingFeeSats] = useState(0);
+  const [fundingPaid, setFundingPaid] = useState(false);
 
   useEffect(() => {
     if (intent === "join" && !seed.current) {
@@ -122,10 +141,46 @@ export default function HiveWallet({
     if (sdk.current !== client) return;
     setInfo(walletInfo);
     setPayments(history.payments);
+    const fundingConfirmed = history.payments.some((payment) =>
+      isCompletedFundingPayment(payment, fundingInvoiceRef.current),
+    );
+    if (fundingConfirmed) {
+      setFundingPaid(true);
+      setStatus("Funding payment confirmed by Breez.");
+    }
     setUnclaimedCount(unclaimed.deposits.length);
     setUnclaimedSats(
       unclaimed.deposits.reduce((total, deposit) => total + deposit.amountSats, 0),
     );
+    return fundingConfirmed;
+  }
+
+  async function createFundingInvoice(client: BreezSdk) {
+    setPhase("fund");
+    setFundingInvoice("");
+    fundingInvoiceRef.current = "";
+    setFundingPaid(false);
+    setStatus("Getting a current $5 Bitcoin quote…");
+    const { rates } = await client.listFiatRates();
+    const usd = rates.find((rate) => rate.coin.toUpperCase() === "USD");
+    if (!usd || !Number.isFinite(usd.value) || usd.value <= 0) {
+      throw new Error("The current Bitcoin price is unavailable.");
+    }
+    const amountSats = usdToSats(5, usd.value);
+    const result = await client.receivePayment({
+      paymentMethod: {
+        type: "bolt11Invoice",
+        amountSats,
+        description: "Join The Hive · $5 wallet funding",
+        expirySecs: 3600,
+      },
+    });
+    fundingInvoiceRef.current = result.paymentRequest;
+    setFundingInvoice(result.paymentRequest);
+    setFundingSats(amountSats);
+    setFundingUsdRate(usd.value);
+    setFundingFeeSats(Number(result.fee));
+    setStatus("Your real Lightning funding invoice is ready for one hour.");
   }
 
   async function disconnectWallet() {
@@ -153,6 +208,12 @@ export default function HiveWallet({
     setLightningAmount("");
     setLightningNote("");
     setLightningInvoice("");
+    fundingInvoiceRef.current = "";
+    setFundingInvoice("");
+    setFundingSats(0);
+    setFundingUsdRate(0);
+    setFundingFeeSats(0);
+    setFundingPaid(false);
     setPhase("restore");
   }
 
@@ -170,6 +231,10 @@ export default function HiveWallet({
       setBackupSaved(false);
       if (sdk.current) setPhase("active");
       setStatus("");
+      onBack();
+      return;
+    }
+    if (phase === "fund") {
       onBack();
       return;
     }
@@ -206,7 +271,7 @@ export default function HiveWallet({
     setStatus("Recovery words pasted. Tap Open my wallet.");
   }
 
-  async function connectAndOpen(words: string) {
+  async function connectAndOpen(words: string, destination: "active" | "fund" = "active") {
     let mnemonic: string;
     try {
       mnemonic = checkRecovery(words);
@@ -222,6 +287,10 @@ export default function HiveWallet({
       try {
         listenerId.current = await connected.addEventListener({
           onEvent(event) {
+            if (event.type === "paymentSucceeded" && isCompletedFundingPayment(event.payment, fundingInvoiceRef.current)) {
+              setFundingPaid(true);
+              setStatus("Funding payment confirmed by Breez.");
+            }
             if (REFRESH_EVENTS.has(event.type) && sdk.current === connected) {
               void refreshWallet(connected).catch(() => undefined);
             }
@@ -234,10 +303,14 @@ export default function HiveWallet({
       }
       setConfirmation("");
       setRecovery("");
-      setPhase("active");
       setStatus("Bitcoin wallet connected.");
       onConnectionChange(true);
-      onOpenApp();
+      if (destination === "fund") {
+        await createFundingInvoice(connected);
+      } else {
+        setPhase("active");
+        onOpenApp();
+      }
     });
   }
 
@@ -250,7 +323,7 @@ export default function HiveWallet({
       onOpenApp();
       return;
     }
-    await connectAndOpen(seed.current);
+    await connectAndOpen(seed.current, intent === "join" ? "fund" : "active");
   }
 
   const field = (label: string, element: ReactNode) => (
@@ -268,7 +341,9 @@ export default function HiveWallet({
       </button>
       <p className="step">
         {phase === "backup"
-          ? "FINAL BACKUP"
+          ? "STEP 2 OF 4 · BACKUP"
+          : phase === "fund"
+            ? "STEP 3 OF 4 · FUND"
           : phase === "restore"
             ? "WELCOME BACK"
             : "THE HIVE · BITCOIN WALLET"}
@@ -356,6 +431,59 @@ export default function HiveWallet({
           >
             Open my wallet →
           </button>
+        </>
+      )}
+
+      {phase === "fund" && (
+        <>
+          <h2>Fund your Hive wallet</h2>
+          <p>
+            Your wallet already exists and your 12-word backup controls it. Pay this real
+            Lightning invoice to add about $5 in Bitcoin.
+          </p>
+          {fundingInvoice ? (
+            <div className="lightning-invoice hive-wallet-address">
+              <div className="lightning-qr">
+                <QRCodeSVG value={fundingInvoice.toUpperCase()} size={228} level="M" marginSize={4} />
+              </div>
+              <b>{fundingSats.toLocaleString()} sats · about $5.00</b>
+              <p>Quote: ${fundingUsdRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} per BTC</p>
+              {fundingFeeSats > 0 && <small>Breez receive fee: {fundingFeeSats.toLocaleString()} sats</small>}
+              <textarea readOnly aria-label="Join The Hive Lightning invoice" value={fundingInvoice} />
+              <button onClick={() => copy(fundingInvoice, "Funding invoice copied.")}>Copy invoice</button>
+            </div>
+          ) : (
+            <button disabled={busy} onClick={() => run(() => createFundingInvoice(sdk.current!))}>
+              Create a new $5 invoice
+            </button>
+          )}
+          {fundingPaid ? (
+            <button
+              onClick={() => {
+                setPhase("active");
+                setStatus("Wallet funded. Your Hive identity keys are ready.");
+                onFundingComplete();
+              }}
+            >
+              Payment received — show my keys →
+            </button>
+          ) : (
+            <button
+              className="hive-secondary"
+              disabled={busy || !fundingInvoice}
+              onClick={() =>
+                run(async () => {
+                  const confirmed = await refreshWallet(sdk.current!);
+                  if (!confirmed) setStatus("No confirmed payment yet. Wait a moment, then check again.");
+                })
+              }
+            >
+              Check payment
+            </button>
+          )}
+          <p className="hive-key-warning">
+            Send only with a Lightning wallet. Do not send on-chain Bitcoin to this QR.
+          </p>
         </>
       )}
 
