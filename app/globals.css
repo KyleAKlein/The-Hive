@@ -378,3 +378,21 @@ main.startup-stage{min-height:100svh;align-items:start;overflow:clip}
 .hive-wallet-back{margin-bottom:26px;background:transparent!important;color:#dec991!important;padding-left:0!important}.hive-recovery{border:1px solid #8b4843;border-radius:18px;padding:18px;background:#211916}.hive-recovery ol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:0;list-style:none;gap:12px 8px;margin:0 0 24px}.hive-recovery li{display:flex;gap:6px;font-size:14px;color:#f1e5d3}.hive-recovery li small{min-width:16px;color:#b78175!important}.hive-recovery button{display:block;margin:12px 0;width:100%}.hive-private-qr{border-color:#b2544a}.hive-key-warning{color:#dfb19c!important;background:#2a2018;border:1px solid #634b34;border-radius:12px;padding:14px}.hive-checks label{display:flex;flex-direction:row;align-items:flex-start;gap:12px;line-height:1.6}.hive-checks input{width:20px;min-width:20px;height:20px;margin-top:3px;accent-color:#d5b36c}.hive-secondary{background:transparent!important;color:#d9c492!important;border:1px solid #5c5b42!important;margin:18px 0;display:block;width:100%}.welcome-demo-link{position:relative;z-index:2;margin:24px auto!important}.hive-wallet code{display:block;word-break:break-all;margin:16px 0}
 .hive-wallet-address{margin:22px 0 30px}
 .hive-recovery-copy{min-height:84px!important;margin-top:14px;font-size:13px!important;line-height:1.6;word-break:normal!important}.hive-save-check{display:flex!important;flex-direction:row!important;align-items:center;gap:12px!important;padding:12px 0;line-height:1.45}.hive-save-check input{width:20px!important;min-width:20px;height:20px;accent-color:#d5b36c}
+
+/* Original Join layout with a live, full-size Lightning QR. */
+.live-join{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:0}
+.live-join .hive-wallet-back{align-self:flex-start;margin-bottom:12px}
+.live-join .mini-brand{margin:0 auto}
+.live-join h2{font-size:28px;margin:0 0 14px}
+.live-join .flow-copy{max-width:300px;margin:0 0 16px;line-height:1.5}
+.live-join .join-fee-copy{font-size:12px;margin:0 0 4px}
+.live-join .join-fee-note{font-size:11px;line-height:1.5;margin:0 auto 14px}
+.live-join .hive-wallet-address{width:100%;margin:0 0 12px}
+.live-join .lightning-qr{margin:10px auto 16px}
+.live-join .join-copy-invoice{display:block;margin:12px auto 0;font-size:13px}
+.live-join .join-invoice-details{margin:8px 0 16px;font-size:12px}
+.live-join .payment-fees{text-align:left}
+.live-join .waiting{width:100%;justify-content:center;margin:16px 0;text-align:left}
+.live-join .waiting small{display:block}
+.live-join .progress{width:100%;justify-content:space-around}
+.live-join .lightning-status{width:100%;text-align:left;font-size:12px}

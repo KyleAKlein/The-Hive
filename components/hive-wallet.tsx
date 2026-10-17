@@ -371,19 +371,21 @@ export default function HiveWallet({
     </label>
   );
   const hasSession = Boolean(seed.current);
+  const joining = phase === "fund" || (phase === "preparing" && intent === "join");
 
   return (
-    <div className="hive-wallet lightning-wallet">
+    <div className={`hive-wallet lightning-wallet${joining ? " join-screen live-join" : ""}`}>
       <button disabled={busy} onClick={leaveWallet} className="hive-wallet-back">
         {phase === "backup" ? "← My Cell" : "← Welcome"}
       </button>
+      {joining && <div className="mini-brand"><svg className="hive-mark compact" viewBox="0 0 104 104" fill="none" aria-hidden="true"><g stroke="currentColor" strokeWidth="3.2" strokeLinejoin="round"><path d="M52 5 75 18v27L52 58 29 45V18z"/><path d="M29 45 52 58v27L29 98 6 85V58z"/><path d="M75 45 98 58v27L75 98 52 85V58z"/></g></svg><span>THE HIVE</span></div>}
       <p className="step">
         {phase === "backup"
           ? "WALLET BACKUP · MY CELL"
           : phase === "preparing"
-            ? "CREATING YOUR WALLET"
+            ? (joining ? "STEP 1 OF 2" : "CREATING YOUR WALLET")
           : phase === "fund"
-            ? "STEP 1 OF 2 · FUND"
+            ? "STEP 1 OF 2"
           : phase === "restore"
             ? "WELCOME BACK"
             : "THE HIVE · BITCOIN WALLET"}
@@ -391,7 +393,7 @@ export default function HiveWallet({
 
       {phase === "preparing" && (
         <>
-          <h2>Preparing your wallet</h2>
+          <h2>{joining ? "Join The Hive" : "Preparing your wallet"}</h2>
           <p>Your recovery words will be available later from My Cell.</p>
           <div className="waiting">
             <span className="spinner" aria-hidden="true" />
@@ -487,27 +489,34 @@ export default function HiveWallet({
 
       {phase === "fund" && (
         <>
-          <h2>Fund your Hive wallet</h2>
-          <p>
-            Your wallet already exists and your 12-word backup controls it. Pay this real
-            Lightning invoice to add about $5 in Bitcoin.
-          </p>
+          <h2>Join The Hive</h2>
+          <p className="flow-copy">Start your Hive wallet by sending Bitcoin to this QR code.</p>
+          <p className="join-fee-copy">Send about $5 with a Lightning wallet.</p>
+          <p className="join-fee-note">Your deposit funds your wallet. The receiving fee is shown below.</p>
           {fundingInvoice ? (
             <div className="lightning-invoice hive-wallet-address">
               <div className="lightning-qr">
                 <QRCodeSVG value={fundingInvoice.toUpperCase()} size={228} level="M" marginSize={4} />
               </div>
               <b>{fundingSats.toLocaleString()} sats · about $5.00</b>
-              <p>Quote: ${fundingUsdRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} per BTC</p>
-              {fundingFeeSats > 0 && <small>Breez receive fee: {fundingFeeSats.toLocaleString()} sats</small>}
-              <textarea readOnly aria-label="Join The Hive Lightning invoice" value={fundingInvoice} />
-              <button onClick={() => copy(fundingInvoice, "Funding invoice copied.")}>Copy invoice</button>
+              <button className="join-copy-invoice" onClick={() => copy(fundingInvoice, "Funding invoice copied.")}>Copy invoice</button>
+              <details className="join-invoice-details"><summary>View Lightning invoice</summary><textarea readOnly aria-label="Join The Hive Lightning invoice" value={fundingInvoice} /></details>
+              <div className="payment-fees fee-estimate">
+                <div><span>Wallet funding</span><strong>About $5.00</strong></div>
+                <div><span>Receiving fee</span><span>{fundingFeeSats.toLocaleString()} sats</span></div>
+                <div className="fee-total"><span>Added to your wallet</span><strong>{Math.max(0, fundingSats - fundingFeeSats).toLocaleString()} sats</strong></div>
+                <small>Quote: ${fundingUsdRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} per BTC. Your sending wallet may charge its own fee.</small>
+              </div>
             </div>
           ) : (
             <button disabled={busy} onClick={() => run(() => createFundingInvoice(sdk.current!))}>
               Create a new $5 invoice
             </button>
           )}
+          <div className="waiting">
+            {!fundingPaid && <span className="spinner" aria-hidden="true" />}
+            <div><b>{fundingPaid ? "Transaction received" : "Waiting for your transaction…"}</b><small>{fundingPaid ? "Your wallet is funded. Continue to save your keys." : "Your payment will be confirmed here."}</small></div>
+          </div>
           {fundingPaid ? (
             <button
               onClick={() => {
@@ -516,7 +525,7 @@ export default function HiveWallet({
                 onFundingComplete();
               }}
             >
-              Payment received — show my keys →
+              Transaction received · Continue →
             </button>
           ) : (
             <button
@@ -532,9 +541,8 @@ export default function HiveWallet({
               Check payment
             </button>
           )}
-          <p className="hive-key-warning">
-            Send only with a Lightning wallet. Do not send on-chain Bitcoin to this QR.
-          </p>
+          <p className="join-fee-note">Lightning only · Back up your wallet’s recovery words from My Cell.</p>
+          <div className="progress"><span className="active">1<i>Fund</i></span><span>2<i>Receive keys</i></span></div>
         </>
       )}
 
@@ -714,7 +722,7 @@ export default function HiveWallet({
         </>
       )}
 
-      {hasSession && phase !== "backup" && (
+      {hasSession && phase !== "backup" && !joining && (
         <button className="hive-secondary" disabled={busy} onClick={lockWallet}>
           Lock wallet
         </button>
