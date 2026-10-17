@@ -49,6 +49,7 @@ export default function HiveWallet({
   initialRecovery,
   backupRequest,
   onConnectionChange,
+  onRecoveryReady,
   onBack,
   onOpenApp,
   onFundingComplete,
@@ -57,6 +58,7 @@ export default function HiveWallet({
   initialRecovery: string;
   backupRequest: number;
   onConnectionChange: (connected: boolean) => void;
+  onRecoveryReady: (recovery: string) => void;
   onBack: () => void;
   onOpenApp: () => void;
   onFundingComplete: () => void;
@@ -90,10 +92,9 @@ export default function HiveWallet({
 
   useEffect(() => {
     if (intent === "join" && !seed.current) {
-      seed.current = initialRecovery ? checkRecovery(initialRecovery) : createRecovery();
       setPhase("preparing");
       setStatus("Securing your new wallet on this browser before creating the funding QR…");
-      void connectAndOpen(seed.current, "fund", true);
+      void startJoin(initialRecovery);
     } else if (intent === "restore" && !seed.current) {
       setPhase("preparing");
       setStatus("Checking this browser for your saved wallet…");
@@ -330,6 +331,14 @@ export default function HiveWallet({
     });
   }
 
+  async function startJoin(candidate: string) {
+    const saved = await loadRecoveryFromDevice();
+    const mnemonic = saved ?? (candidate ? checkRecovery(candidate) : createRecovery());
+    seed.current = mnemonic;
+    onRecoveryReady(mnemonic);
+    await connectAndOpen(mnemonic, "fund", !saved);
+  }
+
   async function openSavedWallet() {
     await run(async () => {
       const saved = await loadRecoveryFromDevice();
@@ -374,7 +383,7 @@ export default function HiveWallet({
           : phase === "preparing"
             ? "CREATING YOUR WALLET"
           : phase === "fund"
-            ? "STEP 2 OF 3 · FUND"
+            ? "STEP 1 OF 2 · FUND"
           : phase === "restore"
             ? "WELCOME BACK"
             : "THE HIVE · BITCOIN WALLET"}

@@ -257,7 +257,7 @@ export default function Home() {
         </header>
         <p className="welcome-promise">Small Payments.<br/><span>A Bigger World.</span></p>
         <div className="welcome-choices">
-          <button className="welcome-choice choice-join" onClick={() => setScreen("join")}>
+          <button className="welcome-choice choice-join" onClick={createWalletKeys}>
             <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><defs><linearGradient id="join-gold" x1="30" y1="15" x2="190" y2="210" gradientUnits="userSpaceOnUse"><stop stopColor="#ffe29a"/><stop offset=".52" stopColor="#f7c65e"/><stop offset="1" stopColor="#dca135"/></linearGradient></defs><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="url(#join-gold)" stroke="#ffdf8c" strokeWidth="1.2"/></svg>
             <span><strong>JOIN<br/>THE HIVE</strong><small>Start a<br/>Bitcoin wallet.</small></span>
           </button>
@@ -273,7 +273,7 @@ export default function Home() {
         </details>
       </div>}
 
-      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={()=>setScreen("home")} onFundingComplete={()=>{setWalletKeys(createHiveKeyPair(walletRecovery));setScreen("keys");}}/></div>}
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={()=>setScreen("home")} onFundingComplete={()=>{setWalletKeys(createHiveKeyPair(walletRecovery));setScreen("keys");}}/></div>}
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
@@ -297,9 +297,9 @@ export default function Home() {
       </div>}
 
       {screen === "keys" && walletKeys && <div className="flow-screen keys-screen">
-        <button className="back" onClick={() => setScreen(walletConnected ? "hive-wallet" : "join")} aria-label="Back"><ArrowLeft/></button>
+        <button className="back" onClick={() => setScreen(walletConnected ? "hive-wallet" : "welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">STEP 3 OF 3</p><h2>Save Your Hive Identity Keys</h2><p className="flow-copy key-save-instruction">Payment confirmed. Open and screen shot both QR codes. Keep the private screenshot out of cloud backups.</p><div className="key-save-arrows" aria-hidden="true"><svg viewBox="0 0 300 42" fill="none"><path d="M130 3C105 3 78 10 72 33M62 23l10 12 12-9M170 3c25 0 52 7 58 30m-12-7 12 9 10-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+        <p className="step">STEP 2 OF 2</p><h2>Save Your Hive Identity Keys</h2><p className="flow-copy key-save-instruction">Payment confirmed. Open and screen shot both QR codes. Keep the private screenshot out of cloud backups.</p><div className="key-save-arrows" aria-hidden="true"><svg viewBox="0 0 300 42" fill="none"><path d="M130 3C105 3 78 10 72 33M62 23l10 12 12-9M170 3c25 0 52 7 58 30m-12-7 12 9 10-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
         <div className="key-pair"><div className="key-card private"><button className="mini-qr real-key-qr" aria-label="Open Hive identity private key" onClick={() => setScreen("private-key")}><QRCodeSVG value={walletKeys.privateKey} size={112} marginSize={2}/></button><b>PRIVATE KEY</b><small>Secret Hive identity key. It does not replace your 12-word wallet backup.</small><div className="inline-key-copy"><code>{walletKeys.privateKey}</code><button onClick={()=>copyKey("private")} aria-label="Copy private key">{copiedKey==="private"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="private"?"Copied":"Copy"}</span></button></div></div><div className="key-card public"><button className="mini-qr real-key-qr" aria-label="Open Hive identity public key" onClick={() => setScreen("public-key")}><QRCodeSVG value={walletKeys.publicKey} size={112} marginSize={2}/></button><b>PUBLIC KEY</b><small>Hive identity key. Safe to share, but it is not a Bitcoin address.</small><div className="inline-key-copy"><code>{walletKeys.publicKey}</code><button onClick={()=>copyKey("public")} aria-label="Copy public key">{copiedKey==="public"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="public"?"Copied":"Copy"}</span></button></div></div></div>
         <p className="key-copy-hint">Your 12 recovery words—not these QR codes—restore your Bitcoin wallet. Get them later from “Back up my wallet” on My Cell.</p>
         {copyError && <p className="key-copy-status" role="status">{copyError}</p>}
