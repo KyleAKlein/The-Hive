@@ -267,13 +267,19 @@ export default function Home() {
           </button>
         </div>
         <button className="restart welcome-demo-link" onClick={()=>setScreen("home")}>Explore the demo</button>
+        <details className="welcome-about">
+          <summary>What is the hive?</summary>
+          <p>The hive is an instant bitcoin wallet built on the lightning network that allows sending/receiving bitcoin.</p>
+        </details>
       </div>}
 
       {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={()=>setScreen("home")} onFundingComplete={()=>{setWalletKeys(createHiveKeyPair(walletRecovery));setScreen("keys");}}/></div>}
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">STEP 1 OF 4</p><h2>Join The Hive</h2><p className="flow-copy">Create and back up your wallet, then fund it with about $5 over Lightning.</p>
+        <p className="step">STEP 1 OF 4</p><h2>Join The Hive</h2><p className="flow-copy">Create your wallet by sending bitcoin to this wallet address (QR code).</p>
+        <p className="join-fee-copy">Please send an amount more than the fees stated below</p>
+        <p className="join-fee-note">You will save your 12-word backup first. The exact Breez fee is shown with the Lightning QR before you pay.</p>
         <div className="creation-emblem"><svg className="rounded-hex-frame" viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#090a08" stroke="currentColor" strokeWidth="1.8"/></svg><KeyRound/></div>
         <div className="check-list"><p><span><Check/></span>The $5 stays in your wallet</p><p><span><Check/></span>Generated with secure browser randomness</p><p><span><Check/></span>Private keys stay on this device</p></div>
         <Button className="demo-forward" onClick={createWalletKeys}>Create my wallet <span>Continue →</span></Button>
