@@ -16,8 +16,13 @@ import {
   normalizeRecovery,
   usdToSats,
 } from "@/lib/hive-wallet";
+import {
+  clearRecoveryFromDevice,
+  loadRecoveryFromDevice,
+  saveRecoveryToDevice,
+} from "@/lib/local-wallet-vault";
 
-type Phase = "restore" | "backup" | "fund" | "active";
+type Phase = "restore" | "preparing" | "backup" | "fund" | "active";
 
 function isCompletedFundingPayment(payment: Payment, invoice: string) {
   return Boolean(
@@ -86,11 +91,13 @@ export default function HiveWallet({
   useEffect(() => {
     if (intent === "join" && !seed.current) {
       seed.current = initialRecovery ? checkRecovery(initialRecovery) : createRecovery();
-      setRecovery(seed.current);
-      setPhase("backup");
-      setStatus("Recovery words were generated on this device. No wallet has been funded.");
+      setPhase("preparing");
+      setStatus("Securing your new wallet on this browser before creating the funding QR…");
+      void connectAndOpen(seed.current, "fund", true);
     } else if (intent === "restore" && !seed.current) {
-      setPhase("restore");
+      setPhase("preparing");
+      setStatus("Checking this browser for your saved wallet…");
+      void openSavedWallet();
     }
   }, [initialRecovery, intent]);
 
@@ -221,7 +228,7 @@ export default function HiveWallet({
     await run(async () => {
       await disconnectWallet();
       resetWalletState();
-      setStatus("Wallet locked. Use your saved Hive recovery words to return.");
+      setStatus("Wallet locked. Reopen it from this browser or use your saved recovery words.");
     });
   }
 
@@ -271,7 +278,45 @@ export default function HiveWallet({
     setStatus("Recovery words pasted. Tap Open my wallet.");
   }
 
-  async function connectAndOpen(words: string, destination: "active" | "fund" = "active") {
+  async function connectWallet(mnemonic: string, destination: "active" | "fund") {
+    seed.current = mnemonic;
+    setStatus("Opening your Bitcoin wallet…");
+    const connected = await connectHiveWallet(mnemonic);
+    sdk.current = connected;
+    try {
+      listenerId.current = await connected.addEventListener({
+        onEvent(event) {
+          if (event.type === "paymentSucceeded" && isCompletedFundingPayment(event.payment, fundingInvoiceRef.current)) {
+            setFundingPaid(true);
+            setStatus("Funding payment confirmed by Breez.");
+          }
+          if (REFRESH_EVENTS.has(event.type) && sdk.current === connected) {
+            void refreshWallet(connected).catch(() => undefined);
+          }
+        },
+      });
+      await refreshWallet(connected);
+    } catch {
+      await disconnectWallet();
+      throw new Error("wallet sync");
+    }
+    setConfirmation("");
+    setRecovery("");
+    setStatus("Bitcoin wallet connected.");
+    onConnectionChange(true);
+    if (destination === "fund") {
+      await createFundingInvoice(connected);
+    } else {
+      setPhase("active");
+      onOpenApp();
+    }
+  }
+
+  async function connectAndOpen(
+    words: string,
+    destination: "active" | "fund" = "active",
+    persistUntilBackup = false,
+  ) {
     let mnemonic: string;
     try {
       mnemonic = checkRecovery(words);
@@ -280,42 +325,26 @@ export default function HiveWallet({
       return;
     }
     await run(async () => {
-      seed.current = mnemonic;
-      setStatus("Opening your Bitcoin wallet…");
-      const connected = await connectHiveWallet(mnemonic);
-      sdk.current = connected;
-      try {
-        listenerId.current = await connected.addEventListener({
-          onEvent(event) {
-            if (event.type === "paymentSucceeded" && isCompletedFundingPayment(event.payment, fundingInvoiceRef.current)) {
-              setFundingPaid(true);
-              setStatus("Funding payment confirmed by Breez.");
-            }
-            if (REFRESH_EVENTS.has(event.type) && sdk.current === connected) {
-              void refreshWallet(connected).catch(() => undefined);
-            }
-          },
-        });
-        await refreshWallet(connected);
-      } catch {
-        await disconnectWallet();
-        throw new Error("wallet sync");
+      if (persistUntilBackup) await saveRecoveryToDevice(mnemonic);
+      await connectWallet(mnemonic, destination);
+    });
+  }
+
+  async function openSavedWallet() {
+    await run(async () => {
+      const saved = await loadRecoveryFromDevice();
+      if (!saved) {
+        setPhase("restore");
+        setStatus("No unfinished wallet is saved on this browser. Paste your recovery words below.");
+        return;
       }
-      setConfirmation("");
-      setRecovery("");
-      setStatus("Bitcoin wallet connected.");
-      onConnectionChange(true);
-      if (destination === "fund") {
-        await createFundingInvoice(connected);
-      } else {
-        setPhase("active");
-        onOpenApp();
-      }
+      await connectWallet(saved, "active");
     });
   }
 
   async function finishBackup() {
     if (sdk.current) {
+      await clearRecoveryFromDevice().catch(() => undefined);
       setRecovery("");
       setBackupSaved(false);
       setPhase("active");
@@ -341,13 +370,26 @@ export default function HiveWallet({
       </button>
       <p className="step">
         {phase === "backup"
-          ? "STEP 2 OF 4 · BACKUP"
+          ? "WALLET BACKUP · MY CELL"
+          : phase === "preparing"
+            ? "CREATING YOUR WALLET"
           : phase === "fund"
-            ? "STEP 3 OF 4 · FUND"
+            ? "STEP 2 OF 3 · FUND"
           : phase === "restore"
             ? "WELCOME BACK"
             : "THE HIVE · BITCOIN WALLET"}
       </p>
+
+      {phase === "preparing" && (
+        <>
+          <h2>Preparing your wallet</h2>
+          <p>Your recovery words will be available later from My Cell.</p>
+          <div className="waiting">
+            <span className="spinner" aria-hidden="true" />
+            <div><b>Securing this browser</b><small>No seed words are shown during startup.</small></div>
+          </div>
+        </>
+      )}
 
       {phase === "backup" && (
         <>
