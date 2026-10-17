@@ -12,9 +12,9 @@ import {
  HIVE_WALLET_NETWORK,
 } from '../lib/hive-wallet.ts';
 const known='abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
-test('new recovery keys have 24 valid words and are unique',()=>{
+test('new recovery keys have 12 valid words and are unique',()=>{
  const first=createRecovery(),second=createRecovery();
- assert.equal(first.split(' ').length,24);
+ assert.equal(first.split(' ').length,12);
  assert.equal(checkRecovery(first),first);
  assert.notEqual(first,second);
 });

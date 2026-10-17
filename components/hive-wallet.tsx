@@ -9,15 +9,15 @@ import type {
 } from "@breeztech/breez-sdk-spark/ssr";
 import { QRCodeSVG } from "qrcode.react";
 import {
-  backupMatches,
   checkRecovery,
   connectHiveWallet,
   createRecovery,
   HIVE_LIGHTNING_ENABLED,
   HIVE_WALLET_NETWORK,
+  normalizeRecovery,
 } from "@/lib/hive-wallet";
 
-type Phase = "restore" | "backup" | "verify" | "configure" | "active";
+type Phase = "restore" | "backup" | "active";
 
 const REFRESH_EVENTS = new Set<SdkEvent["type"]>([
   "synced",
@@ -32,18 +32,21 @@ const REFRESH_EVENTS = new Set<SdkEvent["type"]>([
 export default function HiveWallet({
   intent,
   onBack,
+  onOpenApp,
 }: {
   intent: "join" | "restore" | null;
   onBack: () => void;
+  onOpenApp: () => void;
 }) {
   const seed = useRef("");
   const sdk = useRef<BreezSdk | null>(null);
   const listenerId = useRef<string | null>(null);
   const operationLocked = useRef(false);
+  const copiedRecovery = useRef("");
   const [phase, setPhase] = useState<Phase>("restore");
   const [recovery, setRecovery] = useState("");
   const [confirmation, setConfirmation] = useState("");
-  const [checks, setChecks] = useState([false, false, false]);
+  const [backupSaved, setBackupSaved] = useState(false);
   const [info, setInfo] = useState<GetInfoResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
@@ -123,7 +126,7 @@ export default function HiveWallet({
     seed.current = "";
     setRecovery("");
     setConfirmation("");
-    setChecks([false, false, false]);
+    setBackupSaved(false);
     setInfo(null);
     setPayments([]);
     setUnclaimedCount(0);
@@ -150,13 +153,63 @@ export default function HiveWallet({
     });
   }
 
-  async function copy(value: string) {
+  async function copy(value: string, message = "Copied.") {
     try {
       await navigator.clipboard.writeText(value);
-      setStatus("Copied.");
+      setStatus(message);
     } catch {
       setStatus("Clipboard unavailable. Select the text and copy it manually.");
     }
+  }
+
+  async function pasteRecovery() {
+    let value = "";
+    try {
+      value = await navigator.clipboard.readText();
+    } catch {
+      value = copiedRecovery.current;
+    }
+    if (!value.trim()) value = copiedRecovery.current;
+    if (!value.trim()) {
+      setStatus("Click in the box and press Ctrl+V, or press and hold and choose Paste.");
+      return;
+    }
+    setConfirmation(normalizeRecovery(value));
+    setStatus("Recovery words pasted. Tap Open my wallet.");
+  }
+
+  async function connectAndOpen(words: string) {
+    let mnemonic: string;
+    try {
+      mnemonic = checkRecovery(words);
+    } catch {
+      setStatus("Those recovery words are not valid. Check the spelling and order.");
+      return;
+    }
+    await run(async () => {
+      seed.current = mnemonic;
+      setStatus("Opening your test wallet…");
+      const connected = await connectHiveWallet(mnemonic);
+      sdk.current = connected;
+      try {
+        listenerId.current = await connected.addEventListener({
+          onEvent(event) {
+            if (REFRESH_EVENTS.has(event.type) && sdk.current === connected) {
+              void refreshWallet(connected).catch(() => undefined);
+            }
+          },
+        });
+        await refreshWallet(connected);
+      } catch {
+        await disconnectWallet();
+        throw new Error("wallet sync");
+      }
+      setConfirmation("");
+      setRecovery("");
+      setPhase("active");
+      setStatus("Test wallet connected.");
+      onOpenApp();
+    });
   }
 
   const field = (label: string, element: ReactNode) => (
@@ -174,20 +227,18 @@ export default function HiveWallet({
       </button>
       <p className="step">
         {phase === "backup"
-          ? "REGTEST · 1 OF 3"
-          : phase === "verify"
-            ? "REGTEST · 2 OF 3"
-            : phase === "configure"
-              ? "REGTEST · 3 OF 3"
-              : "THE HIVE · REGTEST"}
+          ? "ONE QUICK STEP"
+          : phase === "restore"
+            ? "WELCOME BACK"
+            : "THE HIVE · TEST WALLET"}
       </p>
 
       {phase === "backup" && (
         <>
           <h2>Save your recovery words</h2>
           <p>
-            This creates a self-custodial test wallet on your device. Write these 24 words
-            down in order and keep them private.
+            Write these 12 words down in order. They are the key to reopening your test
+            wallet.
           </p>
           <div className="hive-recovery">
             <ol>
@@ -199,95 +250,50 @@ export default function HiveWallet({
               ))}
             </ol>
           </div>
+          <textarea
+            className="hive-recovery-copy"
+            readOnly
+            aria-label="Your 12 recovery words"
+            value={recovery}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+          <button
+            className="hive-secondary"
+            disabled={busy}
+            onClick={() => {
+              copiedRecovery.current = seed.current;
+              void copy(seed.current, "All 12 recovery words copied.");
+            }}
+          >
+            Copy all 12 words
+          </button>
           <p className="hive-key-warning">
-            Do not screenshot or paste these words into email, chat, cloud notes, or a
-            password field. Anyone with them can control this wallet.
+            Keep the written copy private. Anyone with these words can open this wallet.
           </p>
           <p className="lightning-muted">
             This first release is locked to regtest. Regtest coins have no real-world value.
           </p>
+          <label className="hive-save-check">
+            <input
+              type="checkbox"
+              checked={backupSaved}
+              onChange={(event) => setBackupSaved(event.target.checked)}
+            />
+            <span>I saved the 12 words somewhere safe.</span>
+          </label>
           <button
-            disabled={busy}
-            onClick={() => {
-              setPhase("verify");
-              setRecovery("");
-            }}
+            disabled={busy || !backupSaved}
+            onClick={() => connectAndOpen(seed.current)}
           >
-            I wrote them down →
-          </button>
-        </>
-      )}
-
-      {phase === "verify" && (
-        <>
-          <h2>Verify your saved words</h2>
-          <p>Type the 24 words you saved, in order.</p>
-          {field(
-            "Your 24 recovery words",
-            <textarea
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              value={confirmation}
-              onChange={(event) => setConfirmation(event.target.value)}
-            />,
-          )}
-          <div className="hive-checks">
-            {[
-              "I wrote down a private offline copy.",
-              "I understand anyone with these words can control the wallet.",
-              "I understand Hive cannot replace lost recovery words.",
-            ].map((label, index) => (
-              <label key={label}>
-                <input
-                  type="checkbox"
-                  checked={checks[index]}
-                  onChange={(event) =>
-                    setChecks((old) =>
-                      old.map((value, item) => (item === index ? event.target.checked : value)),
-                    )
-                  }
-                />
-                <span>{label}</span>
-              </label>
-            ))}
-          </div>
-          <button
-            disabled={busy || checks.some((value) => !value) || !confirmation.trim()}
-            onClick={() => {
-              try {
-                if (!backupMatches(seed.current, confirmation)) {
-                  setStatus("Those words do not match. Check your saved copy and try again.");
-                  return;
-                }
-                setConfirmation("");
-                setRecovery("");
-                setPhase("configure");
-                setStatus("Backup verified. The regtest wallet is ready to start.");
-              } catch {
-                setStatus("Check all 24 words and their order.");
-              }
-            }}
-          >
-            Verify and continue →
-          </button>
-          <button
-            className="hive-secondary"
-            onClick={() => {
-              setRecovery(seed.current);
-              setPhase("backup");
-            }}
-          >
-            Show the words again
+            Open The Hive app →
           </button>
         </>
       )}
 
       {phase === "restore" && (
         <>
-          <h2>Enter the regtest wallet</h2>
-          <p>Use recovery words created by this Hive regtest wallet.</p>
+          <h2>Open your wallet</h2>
+          <p>Paste your 12 recovery words below. Older 24-word Hive test wallets also work.</p>
           {field(
             "Recovery words",
             <textarea
@@ -297,66 +303,18 @@ export default function HiveWallet({
               spellCheck={false}
               value={confirmation}
               onChange={(event) => setConfirmation(event.target.value)}
+              onPaste={() => setStatus("Recovery words pasted. Tap Open my wallet.")}
+              placeholder="Paste all recovery words here"
             />,
           )}
+          <button className="hive-secondary" disabled={busy} onClick={pasteRecovery}>
+            Paste words
+          </button>
           <button
             disabled={busy || !confirmation.trim()}
-            onClick={() => {
-              try {
-                seed.current = checkRecovery(confirmation);
-                setConfirmation("");
-                setPhase("configure");
-                setStatus("Recovery words accepted locally. Start regtest to restore the wallet.");
-              } catch {
-                setStatus("Enter valid Hive recovery words in the original order.");
-              }
-            }}
+            onClick={() => connectAndOpen(confirmation)}
           >
-            Continue
-          </button>
-        </>
-      )}
-
-      {phase === "configure" && (
-        <>
-          <h2>Start the test wallet</h2>
-          <div className="lightning-summary">
-            <b>Regtest · test funds only</b>
-            <p>
-              Breez regtest does not require an API key. It cannot hold or move real bitcoin,
-              and no Hive signup fee will be charged.
-            </p>
-          </div>
-          <p>
-            The wallet engine will keep its working state in this browser. Your recovery words
-            remain the key to restoring it.
-          </p>
-          <button
-            disabled={busy}
-            onClick={() =>
-              run(async () => {
-                setStatus("Loading the wallet engine and connecting to Breez regtest…");
-                const connected = await connectHiveWallet(seed.current);
-                sdk.current = connected;
-                try {
-                  listenerId.current = await connected.addEventListener({
-                    onEvent(event) {
-                      if (REFRESH_EVENTS.has(event.type) && sdk.current === connected) {
-                        void refreshWallet(connected).catch(() => undefined);
-                      }
-                    },
-                  });
-                  await refreshWallet(connected);
-                } catch {
-                  await disconnectWallet();
-                  throw new Error("wallet sync");
-                }
-                setPhase("active");
-                setStatus("Regtest wallet connected. No real bitcoin is enabled.");
-              })
-            }
-          >
-            Start regtest wallet
+            Open my wallet →
           </button>
         </>
       )}
@@ -384,6 +342,7 @@ export default function HiveWallet({
           </details>
 
           <div className="lightning-buttons">
+            <button onClick={onOpenApp}>Open The Hive app</button>
             <button
               disabled={busy}
               onClick={() =>
@@ -496,7 +455,7 @@ export default function HiveWallet({
         </>
       )}
 
-      {hasSession && phase !== "backup" && phase !== "verify" && (
+      {hasSession && phase !== "backup" && (
         <button className="hive-secondary" disabled={busy} onClick={lockWallet}>
           Lock wallet
         </button>

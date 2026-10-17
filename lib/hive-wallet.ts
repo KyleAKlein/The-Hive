@@ -6,7 +6,7 @@ export const HIVE_WALLET_NETWORK = 'regtest' as const satisfies Network;
 export const HIVE_LIGHTNING_ENABLED = false;
 
 export const normalizeRecovery = (value: string) => value.normalize('NFKD').trim().toLowerCase().replace(/\s+/g, ' ');
-export function createRecovery() { return generateMnemonic(wordlist, 256); }
+export function createRecovery() { return generateMnemonic(wordlist, 128); }
 export function checkRecovery(value: string) {
  const normalized = normalizeRecovery(value);
  if (!validateMnemonic(normalized, wordlist)) throw new Error('Enter valid Hive recovery words in their original order.');
