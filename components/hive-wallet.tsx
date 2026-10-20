@@ -481,7 +481,20 @@ export default function HiveWallet({
               Check payment
             </button>
           )}
-          <p className="join-fee-note">Lightning only · Back up your wallet’s recovery words from My Cell.</p>
+          {!fundingPaid && (
+            <button
+              className="hive-secondary"
+              disabled={busy || !seed.current || !sdk.current}
+              onClick={() => {
+                setPhase("active");
+                setStatus("Wallet created without funding. Save your private key before leaving.");
+                onFundingComplete();
+              }}
+            >
+              Create wallet without sending Bitcoin →
+            </button>
+          )}
+          <p className="join-fee-note">You can fund your wallet later. Save your private key securely before leaving this screen.</p>
           <div className="progress"><span className="active">1<i>Fund</i></span><span>2<i>Receive keys</i></span></div>
         </>
       )}
