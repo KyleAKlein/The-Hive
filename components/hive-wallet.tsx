@@ -23,6 +23,11 @@ import {
   loadRecoveryFromDevice,
   saveRecoveryToDevice,
 } from "@/lib/local-wallet-vault";
+import {
+  shouldOpenHiveApp,
+  type WalletConnectionDestination,
+  type WalletIntent,
+} from "@/lib/wallet-session";
 
 type Phase = "restore" | "preparing" | "backup" | "fund" | "active";
 
@@ -58,7 +63,7 @@ export default function HiveWallet({
   onFundingComplete,
 }: {
   visible: boolean;
-  intent: "join" | "restore" | null;
+  intent: WalletIntent;
   initialRecovery: string;
   backupRequest: number;
   onConnectionChange: (connected: boolean) => void;
@@ -95,9 +100,8 @@ export default function HiveWallet({
       setStatus("Securing your new wallet on this browser before creating the funding QR…");
       void startJoin(initialRecovery);
     } else if (intent === "restore" && !seed.current) {
-      setPhase("preparing");
-      setStatus("Checking this browser for your saved wallet…");
-      void openSavedWallet();
+      setPhase("restore");
+      setStatus("");
     }
   }, [initialRecovery, intent]);
 
@@ -274,7 +278,7 @@ export default function HiveWallet({
     setRecovery("");
     setStatus("Bitcoin wallet connected.");
     onConnectionChange(true);
-    if (destination === "fund") {
+    if (!shouldOpenHiveApp(destination)) {
       await createFundingInvoice(connected);
     } else {
       setPhase("active");
@@ -285,7 +289,7 @@ export default function HiveWallet({
 
   async function connectAndOpen(
     words: string,
-    destination: "active" | "fund" = "active",
+    destination: WalletConnectionDestination = "active",
     persistUntilBackup = false,
   ) {
     let mnemonic: string;
@@ -309,21 +313,14 @@ export default function HiveWallet({
     await connectAndOpen(mnemonic, "fund", !saved);
   }
 
-  async function openSavedWallet() {
-    await run(async () => {
-      const saved = await loadRecoveryFromDevice();
-      if (!saved) {
-        setPhase("restore");
-        setStatus("");
-        return;
-      }
-      await connectWallet(saved, "active");
-    });
-  }
-
   async function finishBackup() {
     if (sdk.current) {
-      await clearRecoveryFromDevice().catch(() => undefined);
+      try {
+        await clearRecoveryFromDevice();
+      } catch {
+        setStatus("Your temporary device recovery could not be cleared. Try again before continuing.");
+        return;
+      }
       setRecovery("");
       setBackupSaved(false);
       setPhase("active");

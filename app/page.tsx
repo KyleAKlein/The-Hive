@@ -5,12 +5,14 @@ import HiveWallet from "@/components/hive-wallet";
 import LightningWallet from "@/components/lightning-wallet";
 import { allocateDeposit } from "@/lib/bucket-math";
 import { createWalletAccessKeys, createRecovery } from "@/lib/hive-wallet";
+import { clearRecoveryFromDevice } from "@/lib/local-wallet-vault";
+import { createLoggedOutWalletSession, type WalletIntent } from "@/lib/wallet-session";
 import { ArrowLeft, Check, Clock3, Copy, KeyRound, QrCode, Pencil, Plus, ArrowUpDown, Send, ShieldCheck, Users, Zap, Search, Bookmark, Mail, MapPin, CalendarDays, Trophy, X, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QRCodeSVG } from "qrcode.react";
 
-type Screen = "welcome" | "join" | "creating" | "keys" | "enter" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town" | "my-profile" | "member" | "invoice" | "lightning" | "hive-wallet";
+type Screen = "welcome" | "join" | "creating" | "keys" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town" | "my-profile" | "member" | "invoice" | "lightning" | "hive-wallet";
 
 function HiveMark({ compact = false }: { compact?: boolean }) {
   return <svg className={`hive-mark ${compact ? "compact" : ""}`} viewBox="0 0 104 104" fill="none" role="img" aria-label="The Hive logo"><g stroke="currentColor" strokeWidth="3.2" strokeLinejoin="round"><path d="M52 5 75 18v27L52 58 29 45V18z"/><path d="M29 45 52 58v27L29 98 6 85V58z"/><path d="M75 45 98 58v27L75 98 52 85V58z"/></g></svg>;
@@ -56,11 +58,15 @@ const MOCK_ACTIVITY: {id:number;kind:"sent"|"received"|"allocated"|"released";ce
 const DEMO_SATS_PER_DOLLAR = 1000;
 
 export default function Home() {
-  const [walletIntent,setWalletIntent]=useState<"join"|"restore"|null>(null);
+  const [walletIntent,setWalletIntent]=useState<WalletIntent>(null);
   const [walletRecovery,setWalletRecovery]=useState("");
   const [walletKeys,setWalletKeys]=useState<{privateKey:string;publicKey:string}|null>(null);
   const [backupRequest,setBackupRequest]=useState(0);
   const [walletConnected,setWalletConnected]=useState(false);
+  const [walletSessionGeneration,setWalletSessionGeneration]=useState(0);
+  const [savingWalletKeys,setSavingWalletKeys]=useState(false);
+  const [loggingOut,setLoggingOut]=useState(false);
+  const [logoutError,setLogoutError]=useState("");
   const [screen, setScreen] = useState<Screen>("welcome");
   const [townLedger,setTownLedger]=useState(false);
   const [cellSearch,setCellSearch]=useState("");
@@ -81,7 +87,6 @@ export default function Home() {
   const openMember=(cell:string)=>{if(cell==="D-117")setScreen("profile");else if(cell===profileCell)setScreen("my-profile");else{setSelectedMember(cell);setScreen("member");}};
   const lookupCell=()=>{if(visibleMembers.length===1)openMember(visibleMembers[0].cell);};
   const member=directoryMembers.find(m=>m.cell===selectedMember)!;
-  const [key, setKey] = useState("");
   useEffect(()=>{window.scrollTo({top:0,left:0,behavior:"instant"});},[screen]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copyError, setCopyError] = useState("");
@@ -98,8 +103,50 @@ export default function Home() {
     setWalletKeys(null);
     setCopiedKey(null);
     setCopyError("");
+    setLogoutError("");
     setWalletIntent("join");
     setScreen("hive-wallet");
+  };
+
+  const openHiveApp=()=>{
+    setWalletIntent("join");
+    setWalletRecovery("");
+    setWalletKeys(null);
+    setScreen("home");
+  };
+
+  const finishSavingWalletKeys=async()=>{
+    if(savingWalletKeys)return;
+    setSavingWalletKeys(true);
+    setCopyError("");
+    try{
+      await clearRecoveryFromDevice();
+      openHiveApp();
+    }catch{
+      setCopyError("Your temporary device recovery could not be cleared. Try again before continuing.");
+    }finally{
+      setSavingWalletKeys(false);
+    }
+  };
+
+  const logOut=async()=>{
+    if(loggingOut)return;
+    setLoggingOut(true);
+    setLogoutError("");
+    try{
+      await clearRecoveryFromDevice();
+      const next=createLoggedOutWalletSession(walletSessionGeneration);
+      setWalletSessionGeneration(next.generation);
+      setWalletIntent(next.intent);
+      setWalletRecovery(next.recovery);
+      setWalletKeys(next.keys);
+      setWalletConnected(next.connected);
+      setScreen(next.screen);
+    }catch{
+      setLogoutError("The wallet could not be securely logged out on this browser. Please try again.");
+    }finally{
+      setLoggingOut(false);
+    }
   };
 
   const [invoiceValue,setInvoiceValue]=useState("");
@@ -261,7 +308,7 @@ export default function Home() {
             <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><defs><linearGradient id="join-gold" x1="30" y1="15" x2="190" y2="210" gradientUnits="userSpaceOnUse"><stop stopColor="#ffe29a"/><stop offset=".52" stopColor="#f7c65e"/><stop offset="1" stopColor="#dca135"/></linearGradient></defs><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="url(#join-gold)" stroke="#ffdf8c" strokeWidth="1.2"/></svg>
             <span><strong>JOIN<br/>THE HIVE</strong><small>Start a<br/>Bitcoin wallet.</small></span>
           </button>
-          <button className="welcome-choice choice-enter" onClick={() => {setWalletIntent("restore");setScreen("hive-wallet");}}>
+          <button className="welcome-choice choice-enter" onClick={() => {setLogoutError("");setWalletIntent("restore");setScreen("hive-wallet");}}>
             <svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0d0a" fillOpacity=".85" stroke="#d7ad58" strokeWidth="1.5"/></svg>
             <span><strong>ENTER<br/>THE HIVE</strong><small>Restore my<br/>Bitcoin wallet.</small></span>
           </button>
@@ -273,7 +320,7 @@ export default function Home() {
         </details>
       </div>}
 
-      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={()=>setScreen("home")} onFundingComplete={()=>{setWalletKeys(createWalletAccessKeys(walletRecovery));setScreen("keys");}}/></div>}
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={openHiveApp} onFundingComplete={()=>{setWalletKeys(createWalletAccessKeys(walletRecovery));setScreen("keys");}}/></div>}
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
@@ -304,7 +351,7 @@ export default function Home() {
         <p className="key-copy-hint">Your private key restores your Bitcoin wallet. Paste it into Enter The Hive on any device. Anyone with it can spend your Bitcoin.</p>
         {copyError && <p className="key-copy-status" role="status">{copyError}</p>}
         <div className="cell-card cell-key-hex"><svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0d0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><div><span>Your Cell</span><strong>D-313</strong><small>Your Hive identity</small></div></div>
-        <Button className="unlock" onClick={() => {setWalletIntent("join");setScreen("home");}}>I’ve Saved My Keys</Button>
+        <Button className="unlock" disabled={savingWalletKeys} onClick={() => void finishSavingWalletKeys()}>{savingWalletKeys?"Finishing…":"I’ve Saved My Keys"}</Button>
         <p className="session-note">Wallet recovery key · Generated locally · Keep your private key offline</p>
       </div>}
 
@@ -316,15 +363,6 @@ export default function Home() {
           <div className="key-snapshot-qr"><QRCodeSVG aria-label={`${screen === "private-key" ? "Private" : "Public"} key QR code`} value={screen === "private-key" ? walletKeys.privateKey : walletKeys.publicKey} size={190} marginSize={2}/></div>
         </div>
         <code className="key-snapshot-text">{screen === "private-key" ? walletKeys.privateKey : walletKeys.publicKey}</code>
-      </div>}
-
-      {screen === "enter" && <div className="flow-screen enter-screen">
-        <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
-        <div className="identity small"><HiveMark/><h1>THE HIVE</h1><p>PEOPLE <b>•</b> PAYMENTS <b>•</b> POSSIBILITIES</p></div>
-        <h2>Enter The Hive</h2><p className="flow-copy">Paste or scan your private key to access your wallet.</p>
-        <label className="key-field"><KeyRound size={19}/><Input type="password" value={key} onChange={e => setKey(e.target.value)} placeholder="Paste your private key here…" aria-label="Private key"/><button aria-label="Scan private key"><QrCode size={20}/></button></label>
-        <Button className="unlock" disabled={!key.trim()} onClick={() => setScreen("home")}>Unlock</Button>
-        <p className="session-note"><Zap size={15}/> Your key is used only for this session and is never saved.</p>
       </div>}
 
       {screen === "send" && <div className="flow-screen hex-send-screen">
@@ -451,7 +489,8 @@ export default function Home() {
         <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={()=>setScreen("my-profile")}>My profile</button>
         {walletIntent&&<button className="restart" onClick={()=>{setBackupRequest(value=>value+1);setScreen("hive-wallet");}}>Back up my wallet</button>}
-        <button className="restart" onClick={() => { setKey(""); setScreen("welcome"); }}>Return to startup</button>
+        {logoutError&&<p className="payment-error" role="status">{logoutError}</p>}
+        <button className="restart" disabled={loggingOut} onClick={() => void logOut()}>{loggingOut?"Logging out…":"Log out"}</button>
         <p className="custody-note"><ShieldCheck size={15}/> Your keys. Your control. Always.</p>
       </div>}
     </section>
