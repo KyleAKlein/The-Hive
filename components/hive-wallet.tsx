@@ -278,6 +278,8 @@ export default function HiveWallet({
       await createFundingInvoice(connected);
     } else {
       setPhase("active");
+      // A successful login should enter The Hive, not stop on the wallet tools page.
+      onOpenApp();
     }
   }
 
