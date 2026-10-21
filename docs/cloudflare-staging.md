@@ -14,16 +14,15 @@ to `main`.
 
 ## Required Cloudflare configuration
 
-1. Create a D1 database named `the-hive-db`.
-2. Add its database ID as the build variable `CLOUDFLARE_D1_DATABASE_ID`.
-3. Apply `drizzle/0000_flaky_ghost_rider.sql` to the production database once.
-4. Add `BREEZ_API_KEY` as an encrypted Worker secret before testing the real
+1. Create the D1 database referenced by `vite.config.ts`.
+2. Apply `drizzle/0000_flaky_ghost_rider.sql` to the production database once.
+3. Add `BREEZ_API_KEY` as an encrypted Worker secret before testing the real
    Bitcoin wallet.
 
-Never commit database IDs, API keys, or Cloudflare credentials to the
-repository. The application uses a local placeholder D1 ID when the build
-variable is absent, so local development continues to work without production
-credentials.
+Cloudflare D1 database IDs are resource identifiers and are safe to keep in
+deployment configuration. Never commit API keys or Cloudflare credentials to
+the repository. `CLOUDFLARE_D1_DATABASE_ID` can override the configured D1 ID
+for a different Cloudflare account.
 
 ## Authentication limitation
 

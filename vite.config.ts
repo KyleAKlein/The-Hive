@@ -4,12 +4,12 @@ import hostingConfig from "./.openai/hosting.json";
 import { readExecutionProfile } from "./scripts/execution-profile.mjs";
 import { sites } from "./build/sites-vite-plugin";
 
-const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
-  "00000000-0000-4000-8000-000000000000";
+const THE_HIVE_D1_DATABASE_ID =
+  "513a35e4-dab8-4588-bf4f-230655ca3af4";
 
 const cloudflareDatabaseId =
   process.env.CLOUDFLARE_D1_DATABASE_ID?.trim() ||
-  SITE_CREATOR_PLACEHOLDER_DATABASE_ID;
+  THE_HIVE_D1_DATABASE_ID;
 
 const { d1, r2 } = hostingConfig;
 
