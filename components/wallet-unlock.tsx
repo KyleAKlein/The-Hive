@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ClipboardEvent } from 'react';
-import { Camera, ClipboardPaste, Type, X } from 'lucide-react';
+import { Camera, ClipboardPaste, X } from 'lucide-react';
 import { restoreWalletPrivateKey } from '@/lib/hive-wallet';
 
 function Hex({ dashed = false }: { dashed?: boolean }) {
@@ -9,7 +9,7 @@ function Hex({ dashed = false }: { dashed?: boolean }) {
 }
 
 export default function WalletUnlock({ busy, onUnlock }: { busy: boolean; onUnlock: (key: string) => Promise<void> }) {
-  const [mode, setMode] = useState<'paste' | 'text' | 'camera'>('paste');
+  const [mode, setMode] = useState<'paste' | 'camera'>('paste');
   const [text, setText] = useState('');
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState('');
@@ -79,9 +79,10 @@ export default function WalletUnlock({ busy, onUnlock }: { busy: boolean; onUnlo
   }
 
   function pasted(event: ClipboardEvent) {
+    if (event.target instanceof HTMLTextAreaElement) return;
     const file = Array.from(event.clipboardData.files).find(file => file.type.startsWith('image/'));
     if (file) { event.preventDefault(); void perform(() => readImage(file)); }
-    else if (mode !== 'text') {
+    else {
       const value = event.clipboardData.getData('text/plain');
       if (value) { event.preventDefault(); void perform(() => unlock(value)); }
     }
@@ -130,22 +131,22 @@ export default function WalletUnlock({ busy, onUnlock }: { busy: boolean; onUnlo
 
   return <section className="wallet-unlock" onPaste={pasted} aria-label="Restore your Bitcoin wallet">
     <h2>Enter The Hive</h2>
-    <p className="unlock-intro">Paste your private key to open your wallet.</p>
+    <p className="unlock-intro">Paste the private key you copied when you joined.</p>
+    <form className="unlock-text-panel" onSubmit={event => { event.preventDefault(); void perform(() => unlock(text)); }}>
+      <label htmlFor="wallet-private-key">Your private key</label>
+      <textarea id="wallet-private-key" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} value={text} onChange={event => setText(event.target.value)} placeholder="Paste your hive-wallet-v1 private key here…" />
+      <button disabled={disabled || !text.trim()} type="submit">Enter The Hive →</button>
+    </form>
+    <p className="unlock-alternative">Or use your private-key QR code</p>
     <div className="unlock-honeycomb">
       <div className="unlock-main-hex"><Hex dashed />
         <button className="unlock-paste" disabled={disabled} onClick={() => void perform(paste)} aria-label="Paste private-key screenshot or text"><ClipboardPaste aria-hidden="true" /><strong>{disabled ? 'Opening…' : 'Paste'}</strong><span>Private key or screenshot</span></button>
       </div>
       <button className="unlock-side-hex unlock-camera" aria-label="Scan private key with camera" disabled={disabled} onClick={() => void startCamera()}><Hex /><span><Camera aria-hidden="true" /><small>Camera</small></span></button>
-      <button className="unlock-side-hex unlock-text" aria-label="Enter private key as text" aria-expanded={mode === 'text'} disabled={disabled} onClick={() => { stopCamera(); setMode(mode === 'text' ? 'paste' : 'text'); setMessage(''); }}><Hex /><span><Type aria-hidden="true" /><small>Text</small></span></button>
     </div>
     <input ref={upload} type="file" accept="image/*" hidden onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) { stopCamera(); setMode('paste'); void perform(() => readImage(file)); } }} />
     <input ref={capture} type="file" accept="image/*" capture="environment" hidden onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void perform(() => readImage(file)); }} />
     <button className="unlock-photo-link" disabled={disabled} onClick={() => upload.current?.click()}>Choose a saved screenshot</button>
-    {mode === 'text' && <form className="unlock-text-panel" onSubmit={event => { event.preventDefault(); void perform(() => unlock(text)); }}>
-      <label htmlFor="wallet-private-key">Private key or recovery words</label>
-      <textarea id="wallet-private-key" autoFocus autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} value={text} onChange={event => setText(event.target.value)} placeholder="hive-wallet-v1:…" />
-      <button disabled={disabled || !text.trim()} type="submit">Open my wallet →</button>
-    </form>}
     {mode === 'camera' && <div className="unlock-camera-panel"><video ref={video} autoPlay muted playsInline aria-label="Private-key QR camera preview" /><button onClick={() => { stopCamera(); setMode('paste'); }} aria-label="Close camera"><X size={18} />Close camera</button></div>}
     {message && <p className="unlock-feedback" role="status">{message}</p>}
     {message.startsWith('Camera access') && <button className="unlock-photo-link" onClick={() => capture.current?.click()}>Take a photo</button>}

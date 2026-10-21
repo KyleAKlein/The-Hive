@@ -407,6 +407,7 @@ main.startup-stage{min-height:100svh;align-items:start;overflow:clip}
 .wallet-unlock{width:100%;text-align:center;padding:0 0 22px}
 .wallet-unlock h2{margin:10px 0 8px;font-size:29px;font-weight:450}
 .wallet-unlock .unlock-intro{color:#a9ad9e;font-size:13px;margin:0}
+.wallet-unlock .unlock-alternative{color:#858b79;font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin:24px 0 0}
 .unlock-honeycomb{position:relative;width:100%;max-width:360px;aspect-ratio:1/.94;margin:20px auto 0}
 .unlock-main-hex{position:absolute;width:76%;aspect-ratio:208/218;left:23%;top:5%;color:#d7ad58}
 .unlock-hex-outline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
@@ -422,7 +423,7 @@ main.startup-stage{min-height:100svh;align-items:start;overflow:clip}
 .unlock-side-hex:hover .unlock-hex-outline path{fill:#232617;stroke:#f5d183}
 .lightning-wallet .unlock-photo-link{display:block;margin:0 auto;padding:10px;background:transparent;color:#b9b69e;font-size:12px;text-decoration:underline;text-underline-offset:4px}
 .wallet-unlock .unlock-privacy{font-size:10px;color:#797f6b;margin:12px 0 0}
-.unlock-text-panel{margin:20px 0;text-align:left}
+.unlock-text-panel{margin:20px 0 0;text-align:left}
 .unlock-text-panel label{font-size:12px;margin:0 0 8px}
 .unlock-text-panel textarea{min-height:110px;font-size:13px}
 .unlock-text-panel>button{width:100%;margin-top:12px}
