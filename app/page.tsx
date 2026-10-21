@@ -63,6 +63,7 @@ export default function Home() {
   const [walletKeys,setWalletKeys]=useState<{privateKey:string;publicKey:string}|null>(null);
   const [backupRequest,setBackupRequest]=useState(0);
   const [walletConnected,setWalletConnected]=useState(false);
+  const [walletPreview,setWalletPreview]=useState(false);
   const [walletSessionGeneration,setWalletSessionGeneration]=useState(0);
   const [savingWalletKeys,setSavingWalletKeys]=useState(false);
   const [loggingOut,setLoggingOut]=useState(false);
@@ -104,6 +105,7 @@ export default function Home() {
     setCopiedKey(null);
     setCopyError("");
     setLogoutError("");
+    setWalletPreview(false);
     setWalletIntent("join");
     setScreen("hive-wallet");
   };
@@ -112,6 +114,7 @@ export default function Home() {
     setWalletIntent("join");
     setWalletRecovery("");
     setWalletKeys(null);
+    setWalletPreview(false);
     setScreen("home");
   };
 
@@ -141,6 +144,7 @@ export default function Home() {
       setWalletRecovery(next.recovery);
       setWalletKeys(next.keys);
       setWalletConnected(next.connected);
+      setWalletPreview(false);
       setScreen(next.screen);
     }catch{
       setLogoutError("The wallet could not be securely logged out on this browser. Please try again.");
@@ -320,7 +324,7 @@ export default function Home() {
         </details>
       </div>}
 
-      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setScreen("welcome");}else setScreen("home");}} onOpenApp={openHiveApp} onFundingComplete={()=>{setWalletKeys(createWalletAccessKeys(walletRecovery));setScreen("keys");}}/></div>}
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setWalletPreview(false);setScreen("welcome");}else setScreen("home");}} onOpenApp={openHiveApp} onFundingComplete={(recovery,preview=false)=>{setWalletRecovery(recovery);setWalletKeys(createWalletAccessKeys(recovery));setWalletPreview(preview);setScreen("keys");}}/></div>}
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
@@ -346,12 +350,12 @@ export default function Home() {
       {screen === "keys" && walletKeys && <div className="flow-screen keys-screen">
         <button className="back" onClick={() => setScreen(walletConnected ? "hive-wallet" : "welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <p className="step">STEP 2 OF 2</p><h2>Save Your Wallet Keys</h2><p className="flow-copy key-save-instruction">Payment confirmed. Open and screen shot both QR codes. Keep the private screenshot out of cloud backups.</p><div className="key-save-arrows" aria-hidden="true"><svg viewBox="0 0 300 42" fill="none"><path d="M130 3C105 3 78 10 72 33M62 23l10 12 12-9M170 3c25 0 52 7 58 30m-12-7 12 9 10-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+        <p className="step">STEP 2 OF 2</p><h2>Save Your Wallet Keys</h2><p className="flow-copy key-save-instruction">{walletPreview?"Preview only: these keys were generated locally to demonstrate the backup screens. No Lightning wallet or Bitcoin payment was created.":"Payment confirmed. Open and screen shot both QR codes. Keep the private screenshot out of cloud backups."}</p><div className="key-save-arrows" aria-hidden="true"><svg viewBox="0 0 300 42" fill="none"><path d="M130 3C105 3 78 10 72 33M62 23l10 12 12-9M170 3c25 0 52 7 58 30m-12-7 12 9 10-12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
         <div className="key-pair"><div className="key-card private"><button className="mini-qr real-key-qr" aria-label="Open wallet private key" onClick={() => setScreen("private-key")}><QRCodeSVG value={walletKeys.privateKey} size={112} marginSize={2}/></button><b>PRIVATE KEY</b><small>Restores your Bitcoin wallet. Keep it secret.</small><div className="inline-key-copy"><code>{walletKeys.privateKey}</code><button onClick={()=>copyKey("private")} aria-label="Copy private key">{copiedKey==="private"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="private"?"Copied":"Copy"}</span></button></div></div><div className="key-card public"><button className="mini-qr real-key-qr" aria-label="Open Hive identity public key" onClick={() => setScreen("public-key")}><QRCodeSVG value={walletKeys.publicKey} size={112} marginSize={2}/></button><b>PUBLIC KEY</b><small>Hive identity key. Safe to share, but it is not a Bitcoin address.</small><div className="inline-key-copy"><code>{walletKeys.publicKey}</code><button onClick={()=>copyKey("public")} aria-label="Copy public key">{copiedKey==="public"?<Check size={17}/>:<Copy size={17}/>}<span>{copiedKey==="public"?"Copied":"Copy"}</span></button></div></div></div>
         <p className="key-copy-hint">Your private key restores your Bitcoin wallet. Paste it into Enter The Hive on any device. Anyone with it can spend your Bitcoin.</p>
         {copyError && <p className="key-copy-status" role="status">{copyError}</p>}
         <div className="cell-card cell-key-hex"><svg viewBox="0 0 208 218" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0b0d0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><div><span>Your Cell</span><strong>D-313</strong><small>Your Hive identity</small></div></div>
-        <Button className="unlock" disabled={savingWalletKeys} onClick={() => void finishSavingWalletKeys()}>{savingWalletKeys?"Finishing…":"I’ve Saved My Keys"}</Button>
+        <Button className="unlock" disabled={savingWalletKeys} onClick={() => void finishSavingWalletKeys()}>{savingWalletKeys?"Finishing…":walletPreview?"Continue Demo":"I’ve Saved My Keys"}</Button>
         <p className="session-note">Wallet recovery key · Generated locally · Keep your private key offline</p>
       </div>}
 

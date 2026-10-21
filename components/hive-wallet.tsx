@@ -70,7 +70,7 @@ export default function HiveWallet({
   onRecoveryReady: (recovery: string) => void;
   onBack: () => void;
   onOpenApp: () => void;
-  onFundingComplete: () => void;
+  onFundingComplete: (recovery: string, preview?: boolean) => void;
 }) {
   const seed = useRef("");
   const sdk = useRef<BreezSdk | null>(null);
@@ -313,6 +313,18 @@ export default function HiveWallet({
     await connectAndOpen(mnemonic, "fund", !saved);
   }
 
+  function previewWalletSetup() {
+    let mnemonic = seed.current;
+    if (!mnemonic) {
+      mnemonic = initialRecovery ? checkRecovery(initialRecovery) : createRecovery();
+      seed.current = mnemonic;
+      onRecoveryReady(mnemonic);
+    }
+    onConnectionChange(false);
+    setStatus("Preview only: no Breez wallet or Bitcoin payment was created.");
+    onFundingComplete(mnemonic, true);
+  }
+
   async function finishBackup() {
     if (sdk.current) {
       try {
@@ -366,6 +378,11 @@ export default function HiveWallet({
             <span className="spinner" aria-hidden="true" />
             <div><b>Securing this browser</b><small>No seed words are shown during startup.</small></div>
           </div>
+          {intent === "join" && (
+            <button className="hive-secondary" disabled={busy} onClick={previewWalletSetup}>
+              Preview wallet setup without Breez →
+            </button>
+          )}
         </>
       )}
 
@@ -461,7 +478,7 @@ export default function HiveWallet({
               onClick={() => {
                 setPhase("active");
                 setStatus("Wallet funded. Your wallet keys are ready.");
-                onFundingComplete();
+                onFundingComplete(seed.current);
               }}
             >
               Transaction received · Continue →
@@ -487,7 +504,7 @@ export default function HiveWallet({
               onClick={() => {
                 setPhase("active");
                 setStatus("Wallet created without funding. Save your private key before leaving.");
-                onFundingComplete();
+                onFundingComplete(seed.current);
               }}
             >
               Create wallet without sending Bitcoin →
