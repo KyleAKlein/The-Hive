@@ -36,12 +36,12 @@ export function createHiveKeyPair(recovery: string) {
 // their checksum. This is wallet recovery material, not an identity signing key.
 const PRIVATE_KEY_PREFIX = 'hive-wallet-v1:';
 export function createWalletPrivateKey(recovery: string) {
- return PRIVATE_KEY_PREFIX + checkRecovery(recovery).split(' ').map(word => wordlist.indexOf(word).toString(16).padStart(3, '0')).join('');
+ return checkRecovery(recovery).split(' ').map(word => wordlist.indexOf(word).toString(16).padStart(3, '0')).join('');
 }
 export function restoreWalletPrivateKey(value: string) {
  const normalized = value.trim().toLowerCase();
- if (!normalized.startsWith(PRIVATE_KEY_PREFIX)) return checkRecovery(value);
- const payload = normalized.slice(PRIVATE_KEY_PREFIX.length);
+ const payload = normalized.startsWith(PRIVATE_KEY_PREFIX) ? normalized.slice(PRIVATE_KEY_PREFIX.length) : normalized;
+ if (!/^[a-f0-9]+$/.test(payload)) return checkRecovery(value);
  if (!/^(?:[0-7][a-f0-9]{2})+$/.test(payload) || ![36,45,54,63,72].includes(payload.length)) {
   throw new Error('Invalid Hive wallet private key.');
  }

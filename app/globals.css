@@ -431,6 +431,8 @@ main.startup-stage{min-height:100svh;align-items:start;overflow:clip}
 .unlock-camera-panel video{display:block;width:100%;max-height:320px;object-fit:cover;background:#080a07}
 .unlock-camera-panel>button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border-radius:0}
 .wallet-unlock .unlock-feedback{font-size:12px;line-height:1.5;color:#dac89d;margin:14px 0}
+.welcome-registry-link{margin-top:6px!important;color:#9ea58f!important;font-size:11px!important}
+.wallet-registry-screen{padding:52px 24px 30px}.wallet-registry-screen h2{margin-bottom:8px}.wallet-registry-list{display:flex;flex-direction:column;gap:10px;width:100%;margin:22px 0}.wallet-registry-list article{padding:14px;border:1px solid #3f4a35;border-radius:12px;background:#11180e;text-align:left}.wallet-registry-list article>div{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-bottom:10px}.wallet-registry-list strong{font-size:13px;font-weight:500;color:#e8d1a0}.wallet-registry-list small{font-size:9px;color:#8d9782;text-align:right}.wallet-registry-list code{display:block;overflow-wrap:anywhere;font-size:9px;line-height:1.5;color:#b8c3ad;user-select:all}.wallet-registry-empty{margin:28px 0;color:#8d9782;font-size:12px}
 @media(max-width:360px){.unlock-paste strong{font-size:22px}.unlock-paste span{font-size:9px}.unlock-side-hex>span>svg{width:19px;height:19px}}
 
 /* Keep the restore page aligned with the app's compact branded screens. */

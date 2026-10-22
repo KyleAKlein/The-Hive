@@ -134,7 +134,7 @@ export default function WalletUnlock({ busy, onUnlock }: { busy: boolean; onUnlo
     <p className="unlock-intro">Paste the private key you copied when you joined.</p>
     <form className="unlock-text-panel" onSubmit={event => { event.preventDefault(); void perform(() => unlock(text)); }}>
       <label htmlFor="wallet-private-key">Your private key</label>
-      <textarea id="wallet-private-key" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} value={text} onChange={event => setText(event.target.value)} placeholder="Paste your hive-wallet-v1 private key here…" />
+      <textarea id="wallet-private-key" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} value={text} onChange={event => setText(event.target.value)} placeholder="Paste your private key here…" />
       <button disabled={disabled || !text.trim()} type="submit">Enter The Hive →</button>
     </form>
     <p className="unlock-alternative">Or use your private-key QR code</p>

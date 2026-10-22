@@ -67,12 +67,13 @@ test('wallet private key restores the exact mnemonic, SDK seed, storage, and pub
  const { wordlist } = await import('@scure/bip39/wordlists/english.js');
  for (const words of [known,generateMnemonic(wordlist,128),generateMnemonic(wordlist,256)]) {
   const key=createWalletPrivateKey(words);
-  assert.match(key,/^hive-wallet-v1:/);
+  assert.match(key,/^(?:[0-7][a-f0-9]{2})+$/);
   const restored=restoreWalletPrivateKey('  '+key.toUpperCase()+'  ');
   assert.equal(restored,words);
   assert.deepEqual(mnemonicToSeedSync(restored),mnemonicToSeedSync(words));
   assert.equal(await walletStorageDir(restored),await walletStorageDir(words));
   assert.deepEqual(createWalletAccessKeys(restored),createWalletAccessKeys(words));
+  assert.equal(restoreWalletPrivateKey('hive-wallet-v1:'+key),words);
  }
 });
 test('wallet private key rejects truncation, bad checksum, public keys, and old identity secrets',()=>{

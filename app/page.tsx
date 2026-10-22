@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QRCodeSVG } from "qrcode.react";
 
-type Screen = "welcome" | "join" | "creating" | "keys" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town" | "my-profile" | "member" | "invoice" | "lightning" | "hive-wallet";
+type Screen = "welcome" | "join" | "creating" | "keys" | "wallet-registry" | "home" | "private-key" | "public-key" | "send" | "receive" | "activity" | "buckets" | "directory" | "profile" | "town" | "my-profile" | "member" | "invoice" | "lightning" | "hive-wallet";
+
+type WalletRegistryEntry = { publicKey: string; cell: string; name: string; createdAt: string };
 
 function HiveMark({ compact = false }: { compact?: boolean }) {
   return <svg className={`hive-mark ${compact ? "compact" : ""}`} viewBox="0 0 104 104" fill="none" role="img" aria-label="The Hive logo"><g stroke="currentColor" strokeWidth="3.2" strokeLinejoin="round"><path d="M52 5 75 18v27L52 58 29 45V18z"/><path d="M29 45 52 58v27L29 98 6 85V58z"/><path d="M75 45 98 58v27L75 98 52 85V58z"/></g></svg>;
@@ -81,6 +83,14 @@ export default function Home() {
   const [profileTag,setProfileTag]=useState("Hive member");
   const [profileCell,setProfileCell]=useState("D-313");
   const [selectedMember,setSelectedMember]=useState("D-042");
+  const [walletRegistry,setWalletRegistry]=useState<WalletRegistryEntry[]>([]);
+  useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem("hive-public-wallet-registry-v1")||"[]");if(Array.isArray(saved))setWalletRegistry(saved.filter((entry:WalletRegistryEntry)=>typeof entry.publicKey==="string"&&/^0[23][a-f0-9]{64}$/.test(entry.publicKey)&&typeof entry.cell==="string"&&typeof entry.name==="string"&&typeof entry.createdAt==="string"));}catch{}},[]);
+  const registerPublicWallet=(publicKey:string)=>setWalletRegistry(old=>{
+    if(old.some(entry=>entry.publicKey===publicKey))return old;
+    const next=[{publicKey,cell:profileCell,name:anonymous?"Anonymous Cell":profileName,createdAt:new Date().toISOString()},...old];
+    try{localStorage.setItem("hive-public-wallet-registry-v1",JSON.stringify(next));}catch{}
+    return next;
+  });
   useEffect(()=>{let cancelled=false;(async()=>{try{const response=await fetch("/api/profile",{cache:"no-store"});if(!response.ok)throw new Error("profile unavailable");const body=await response.json() as {profile?:{name?:string;tag?:string;cellNumber?:string;anonymous?:boolean}};if(cancelled)return;const profile=body.profile;if(profile){if(profile.name)setProfileName(profile.name);if(profile.tag)setProfileTag(profile.tag);if(profile.cellNumber)setProfileCell(profile.cellNumber);setAnonymous(Boolean(profile.anonymous));}}catch{try{setAnonymous(localStorage.getItem("hive-profile-anonymous")==="true");}catch{}}finally{if(!cancelled)setPrivacyReady(true);}})();return()=>{cancelled=true;};},[]);
   useEffect(()=>{if(!privacyReady)return;try{localStorage.setItem("hive-profile-anonymous",String(anonymous));}catch{}void fetch("/api/profile",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({anonymous})}).catch(()=>undefined);},[anonymous,privacyReady]);
   const directoryMembers=[{cell:"D-008",name:"Anonymous Cell",tag:""},{cell:"D-042",name:"Avery Chen",tag:"Poet"},{cell:"D-090",name:"Jordan Ellis",tag:"Musician"},{cell:"D-117",name:"Marcus Reed",tag:"Comedian"},{cell:"D-226",name:"Sam Rivera",tag:"Skater"},{cell:profileCell,name:anonymous?"Anonymous Cell":profileName,tag:anonymous?"":profileTag},{cell:"D-405",name:"Anonymous Cell",tag:""}];
@@ -318,13 +328,24 @@ export default function Home() {
           </button>
         </div>
         <button className="restart welcome-demo-link" onClick={()=>setScreen("home")}>Explore the demo</button>
+        <button className="restart welcome-registry-link" onClick={()=>setScreen("wallet-registry")}>View wallet registry</button>
         <details className="welcome-about">
           <summary>What is the hive?</summary>
           <p>The hive is an instant bitcoin wallet built on the lightning network that allows sending/receiving bitcoin.</p>
         </details>
       </div>}
 
-      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setWalletPreview(false);setScreen("welcome");}else setScreen("home");}} onOpenApp={openHiveApp} onFundingComplete={(recovery,preview=false)=>{setWalletRecovery(recovery);setWalletKeys(createWalletAccessKeys(recovery));setWalletPreview(preview);setScreen("keys");}}/></div>}
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setWalletPreview(false);setScreen("welcome");}else setScreen("home");}} onOpenApp={openHiveApp} onFundingComplete={(recovery,preview=false)=>{const keys=createWalletAccessKeys(recovery);setWalletRecovery(recovery);setWalletKeys(keys);registerPublicWallet(keys.publicKey);setWalletPreview(preview);setScreen("keys");}}/></div>}
+
+      {screen === "wallet-registry" && <div className="flow-screen wallet-registry-screen">
+        <button className="back" onClick={()=>setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
+        <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
+        <p className="step">PUBLIC WALLET REGISTRY</p><h2>{walletRegistry.length} {walletRegistry.length===1?"wallet":"wallets"} created</h2>
+        <p className="flow-copy">Public keys for wallets created in this browser. Private keys are never collected or shown here.</p>
+        <div className="wallet-registry-list">{walletRegistry.map(entry=><article key={entry.publicKey}><div><strong>{entry.name}</strong><small>{entry.cell} · {new Date(entry.createdAt).toLocaleString()}</small></div><code>{entry.publicKey}</code></article>)}</div>
+        {!walletRegistry.length&&<p className="wallet-registry-empty">No wallets have been created on this device yet.</p>}
+        <p className="session-note">For safety, each private key exists only on its owner’s device and backup.</p>
+      </div>}
       {screen === "join" && <div className="flow-screen join-screen">
         <button className="back" onClick={() => setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
