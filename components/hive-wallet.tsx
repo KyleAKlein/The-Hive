@@ -69,7 +69,7 @@ export default function HiveWallet({
   onConnectionChange: (connected: boolean) => void;
   onRecoveryReady: (recovery: string) => void;
   onBack: () => void;
-  onOpenApp: () => void;
+  onOpenApp: (preview?: boolean) => void;
   onFundingComplete: (recovery: string, preview?: boolean) => void;
 }) {
   const seed = useRef("");
@@ -301,7 +301,17 @@ export default function HiveWallet({
     }
     await run(async () => {
       if (persistUntilBackup) await saveRecoveryToDevice(mnemonic);
-      await connectWallet(mnemonic, destination);
+      try {
+        await connectWallet(mnemonic, destination);
+      } catch (error) {
+        if (destination !== "active" || intent !== "restore") throw error;
+        seed.current = mnemonic;
+        onRecoveryReady(mnemonic);
+        onConnectionChange(false);
+        setPhase("active");
+        setStatus("Preview mode: your key was accepted, but the Breez wallet service is not connected yet.");
+        onOpenApp(true);
+      }
     });
   }
 
@@ -538,7 +548,7 @@ export default function HiveWallet({
           </details>
 
           <div className="lightning-buttons">
-            <button onClick={onOpenApp}>Open The Hive app</button>
+            <button onClick={() => onOpenApp()}>Open The Hive app</button>
             <button
               disabled={busy}
               onClick={() =>

@@ -120,11 +120,12 @@ export default function Home() {
     setScreen("hive-wallet");
   };
 
-  const openHiveApp=()=>{
+  const openHiveApp=(preview=false)=>{
     setWalletIntent("join");
     setWalletRecovery("");
     setWalletKeys(null);
     setWalletPreview(false);
+    setProfileNotice(preview?"Wallet key accepted. You are viewing your Hive profile in preview mode until Breez is connected.":"");
     setScreen("home");
   };
 
