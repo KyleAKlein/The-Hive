@@ -57,6 +57,7 @@ export default function HiveWallet({
   initialRecovery,
   backupRequest,
   onConnectionChange,
+  onBalanceChange,
   onRecoveryReady,
   onBack,
   onOpenApp,
@@ -67,6 +68,7 @@ export default function HiveWallet({
   initialRecovery: string;
   backupRequest: number;
   onConnectionChange: (connected: boolean) => void;
+  onBalanceChange: (balanceSats: number) => void;
   onRecoveryReady: (recovery: string) => void;
   onBack: () => void;
   onOpenApp: (preview?: boolean) => void;
@@ -151,6 +153,7 @@ export default function HiveWallet({
     ]);
     if (sdk.current !== client) return;
     setInfo(walletInfo);
+    onBalanceChange(walletInfo.balanceSats);
     setPayments(history.payments);
     const fundingConfirmed = history.payments.some((payment) =>
       isCompletedFundingPayment(payment, fundingInvoiceRef.current),

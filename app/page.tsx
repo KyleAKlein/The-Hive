@@ -65,6 +65,7 @@ export default function Home() {
   const [walletKeys,setWalletKeys]=useState<{privateKey:string;publicKey:string}|null>(null);
   const [backupRequest,setBackupRequest]=useState(0);
   const [walletConnected,setWalletConnected]=useState(false);
+  const [realWalletBalance,setRealWalletBalance]=useState<number|null>(null);
   const [walletPreview,setWalletPreview]=useState(false);
   const [walletSessionGeneration,setWalletSessionGeneration]=useState(0);
   const [savingWalletKeys,setSavingWalletKeys]=useState(false);
@@ -128,6 +129,7 @@ export default function Home() {
     setProfileNotice(preview?"Wallet key accepted. You are viewing your Hive profile in preview mode until Breez is connected.":"");
     setScreen("home");
   };
+  const handleWalletConnection=(connected:boolean)=>{setWalletConnected(connected);if(!connected)setRealWalletBalance(null);};
 
   const finishSavingWalletKeys=async()=>{
     if(savingWalletKeys)return;
@@ -154,7 +156,7 @@ export default function Home() {
       setWalletIntent(next.intent);
       setWalletRecovery(next.recovery);
       setWalletKeys(next.keys);
-      setWalletConnected(next.connected);
+      handleWalletConnection(next.connected);
       setWalletPreview(false);
       setScreen(next.screen);
     }catch{
@@ -336,7 +338,7 @@ export default function Home() {
         </details>
       </div>}
 
-      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={setWalletConnected} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setWalletPreview(false);setScreen("welcome");}else setScreen("home");}} onOpenApp={openHiveApp} onFundingComplete={(recovery,preview=false)=>{const keys=createWalletAccessKeys(recovery);setWalletRecovery(recovery);setWalletKeys(keys);registerPublicWallet(keys.publicKey);setWalletPreview(preview);setScreen("keys");}}/></div>}
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={handleWalletConnection} onBalanceChange={setRealWalletBalance} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setWalletPreview(false);setScreen("welcome");}else setScreen("home");}} onOpenApp={openHiveApp} onFundingComplete={(recovery,preview=false)=>{const keys=createWalletAccessKeys(recovery);setWalletRecovery(recovery);setWalletKeys(keys);registerPublicWallet(keys.publicKey);setWalletPreview(preview);setScreen("keys");}}/></div>}
 
       {screen === "wallet-registry" && <div className="flow-screen wallet-registry-screen">
         <button className="back" onClick={()=>setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
@@ -510,8 +512,8 @@ export default function Home() {
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <button className="cell-badge" aria-label="Open My Wallet and buckets" onClick={()=>setScreen("buckets")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><small>My Wallet</small></button>
         {walletConnected&&<button className="lightning-entry" onClick={()=>setScreen("hive-wallet")}><Zap size={18}/> Open your Bitcoin wallet <ArrowUpRight size={16}/></button>}
-        <p className="profile-demo-caption">Demo wallet below · sample funds and Cells</p><p className="home-label">YOUR CELL · D-313</p><h2>{balance.toLocaleString()} sats</h2><p className="fiat">Spendable · {reserved.toLocaleString()} sats in buckets</p>
-        <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => openPayment("receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
+        <p className="profile-demo-caption">{walletConnected?"Live wallet · balance reported by Breez Spark":"Demo wallet below · sample funds and Cells"}</p><p className="home-label">YOUR CELL · D-313</p><h2>{(realWalletBalance??balance).toLocaleString()} sats</h2><p className="fiat">{walletConnected?"Real Bitcoin balance":`Spendable · ${reserved.toLocaleString()} sats in buckets`}</p>
+        <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => setScreen(walletConnected?"hive-wallet":"receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={()=>setScreen("my-profile")}>My profile</button>
         {walletIntent&&<button className="restart" onClick={()=>{setBackupRequest(value=>value+1);setScreen("hive-wallet");}}>Back up my wallet</button>}
