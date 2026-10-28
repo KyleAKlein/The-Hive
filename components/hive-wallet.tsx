@@ -24,7 +24,6 @@ import {
   saveRecoveryToDevice,
 } from "@/lib/local-wallet-vault";
 import {
-  shouldOpenHiveApp,
   type WalletConnectionDestination,
   type WalletIntent,
 } from "@/lib/wallet-session";
@@ -255,7 +254,7 @@ export default function HiveWallet({
     }
   }
 
-  async function connectWallet(mnemonic: string, destination: "active" | "fund") {
+  async function connectWallet(mnemonic: string, destination: WalletConnectionDestination) {
     seed.current = mnemonic;
     onRecoveryReady(mnemonic);
     setStatus("Opening your Bitcoin wallet…");
@@ -281,8 +280,12 @@ export default function HiveWallet({
     setRecovery("");
     setStatus("Bitcoin wallet connected.");
     onConnectionChange(true);
-    if (!shouldOpenHiveApp(destination)) {
+    if (destination === "fund") {
       await createFundingInvoice(connected);
+    } else if (destination === "keys") {
+      setPhase("active");
+      setStatus("Lightning wallet created. Save your keys before continuing.");
+      onFundingComplete(mnemonic);
     } else {
       setPhase("active");
       // A successful login should enter The Hive, not stop on the wallet tools page.
@@ -307,6 +310,14 @@ export default function HiveWallet({
       try {
         await connectWallet(mnemonic, destination);
       } catch (error) {
+        if (destination === "keys" && intent === "join") {
+          seed.current = mnemonic;
+          onRecoveryReady(mnemonic);
+          onConnectionChange(false);
+          setStatus("Preview mode: keys created locally, but Breez is not connected yet.");
+          onFundingComplete(mnemonic, true);
+          return;
+        }
         if (destination !== "active" || intent !== "restore") throw error;
         seed.current = mnemonic;
         onRecoveryReady(mnemonic);
@@ -323,7 +334,7 @@ export default function HiveWallet({
     const mnemonic = saved ?? (candidate ? checkRecovery(candidate) : createRecovery());
     seed.current = mnemonic;
     onRecoveryReady(mnemonic);
-    await connectAndOpen(mnemonic, "fund", !saved);
+    await connectAndOpen(mnemonic, "keys", !saved);
   }
 
   function previewWalletSetup() {
@@ -353,7 +364,7 @@ export default function HiveWallet({
       onOpenApp();
       return;
     }
-    await connectAndOpen(seed.current, intent === "join" ? "fund" : "active");
+    await connectAndOpen(seed.current, "active");
   }
 
   const field = (label: string, element: ReactNode) => (

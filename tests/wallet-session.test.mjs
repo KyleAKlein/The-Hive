@@ -21,4 +21,5 @@ test("logout advances the mounted wallet session and clears sensitive state", ()
 test("an active wallet enters the Hive app automatically", () => {
   assert.equal(shouldOpenHiveApp("active"), true);
   assert.equal(shouldOpenHiveApp("fund"), false);
+  assert.equal(shouldOpenHiveApp("keys"), false);
 });

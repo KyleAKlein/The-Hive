@@ -1,5 +1,5 @@
 export type WalletIntent = "join" | "restore" | null;
-export type WalletConnectionDestination = "active" | "fund";
+export type WalletConnectionDestination = "active" | "fund" | "keys";
 
 export function shouldOpenHiveApp(
   destination: WalletConnectionDestination,
