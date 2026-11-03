@@ -134,7 +134,6 @@ export default function Home() {
   };
 
   const openHiveApp=(preview=false)=>{
-    setWalletIntent("join");
     setWalletKeys(null);
     resetSecurity();
     setWalletPreview(false);
