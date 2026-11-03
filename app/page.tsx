@@ -142,6 +142,7 @@ export default function Home() {
     setScreen("home");
   };
   const handleWalletConnection=(connected:boolean)=>{setWalletConnected(connected);if(!connected)setRealWalletBalance(null);};
+  const openLiveWallet=()=>setScreen("hive-wallet");
 
   const finishSavingWalletKeys=async()=>{
     if(savingWalletKeys)return;
@@ -197,7 +198,7 @@ export default function Home() {
   const startInvoice=()=>{setInvoiceDraft(null);setInvoiceValue("");setInvoiceNote("");setInvoiceTo("");setInvoiceMessage("");setScreen("invoice");};
   const createInvoice=()=>{if(!invoiceValid)return;const v={id:crypto.randomUUID(),sats:invoiceSats,note:invoiceNote.trim(),expires:Date.now()+Number(invoiceExpiry)*60000,to:"",sent:false,paid:false};setInvoiceDraft(v);setDemoInvoices(old=>[v,...old]);setInvoiceMessage("");};
   const sendInvoice=()=>{const to=invoiceTo.trim().toUpperCase();if(!/^[A-Z]{1,3}-\d{1,6}(?:-\d{1,6})?$/.test(to)||to==="D-313"){setInvoiceMessage("Enter another Cell, such as D-117.");return;}if(!invoiceDraft||invoiceDraft.expires<=Date.now())return;const v={...invoiceDraft,to,sent:true};setInvoiceDraft(v);setDemoInvoices(old=>old.map(x=>x.id===v.id?v:x));setInvoiceMessage(`Demo invoice addressed to ${to}. Saved locally; no message is delivered to another device.`);};
-  const [balance, setBalance] = useState(21340);
+  const [balance, setBalance] = useState(0);
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [notice, setNotice] = useState("");
@@ -223,7 +224,7 @@ export default function Home() {
         setBalance(saved.balance);setBuckets(saved.buckets);
         if(Array.isArray(saved.transactions) && saved.transactions.every((t:{kind:string;amount:number;cell:string;time:string})=>["sent","received","allocated","released"].includes(t.kind)&&Number.isSafeInteger(t.amount)&&t.amount>0&&typeof t.cell==="string"&&typeof t.time==="string"))setTransactions([...saved.transactions,...MOCK_ACTIVITY.filter(m=>!saved.transactions.some((t:{id:number})=>t.id===m.id))]);
       }
-    } catch { /* A fresh demo is safe if browser storage is unavailable. */ }
+    } catch { /* Legacy demo data is ignored by the live wallet UI. */ }
     setStorageReady(true);
     return ()=>{if(holdTimer.current)clearTimeout(holdTimer.current);};
   },[]);
@@ -524,10 +525,10 @@ export default function Home() {
       {<div hidden={screen !== "lightning"} className="flow-screen"><button className="back" onClick={()=>setScreen("home")} aria-label="Back to demo wallet"><ArrowLeft/></button><LightningWallet/></div>}
       {screen === "home" && <div className="flow-screen home-screen">
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
-        <button className="cell-badge" aria-label="Open My Wallet and buckets" onClick={()=>setScreen("buckets")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><small>My Wallet</small></button>
-        {walletConnected&&<button className="lightning-entry" onClick={()=>setScreen("hive-wallet")}><Zap size={18}/> Open your Bitcoin wallet <ArrowUpRight size={16}/></button>}
-        <p className="profile-demo-caption">{walletConnected?"Live wallet · balance reported by Breez Spark":"Demo wallet below · sample funds and Cells"}</p><p className="home-label">YOUR CELL · D-313</p><h2>{(realWalletBalance??balance).toLocaleString()} sats</h2><p className="fiat">{walletConnected?"Real Bitcoin balance":`Spendable · ${reserved.toLocaleString()} sats in buckets`}</p>
-        <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => setScreen(walletConnected?"hive-wallet":"receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
+        <button className="cell-badge" aria-label="Open My Wallet and buckets" onClick={openLiveWallet}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><small>My Wallet</small></button>
+        <button className="lightning-entry" onClick={openLiveWallet}><Zap size={18}/> Open your Bitcoin wallet <ArrowUpRight size={16}/></button>
+        <p className="profile-demo-caption">{walletConnected&&realWalletBalance!==null?"Live wallet · balance reported by Breez Spark":"Balance unavailable · connect or refresh your Bitcoin wallet"}</p><p className="home-label">YOUR CELL · D-313</p><h2>{walletConnected&&realWalletBalance!==null?`${realWalletBalance.toLocaleString()} sats`:"— sats"}</h2><p className="fiat">{walletConnected&&realWalletBalance!==null?"Verified wallet balance":"No simulated balance shown"}</p>
+        <div className="home-actions"><button onClick={openLiveWallet}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={openLiveWallet}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={openLiveWallet}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={()=>setScreen("my-profile")}>My profile</button>
         {walletIntent&&<button className="restart" onClick={()=>{setBackupRequest(value=>value+1);setScreen("hive-wallet");}}>Back up my wallet</button>}
