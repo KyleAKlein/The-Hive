@@ -128,16 +128,22 @@ export default function HiveWallet({
     [],
   );
 
+  function explainWalletError(error: unknown) {
+    const detail = error instanceof Error ? error.message : String(error);
+    if (/configured|503|api.?key/i.test(detail)) return "Breez is not configured for this Cloudflare preview. Check the BREEZ_API_KEY environment variable for this preview environment.";
+    if (/fetch|network|timeout|timed out/i.test(detail)) return "Breez could not be reached. Check your connection and retry. If this continues, check Cloudflare logs.";
+    return "Breez wallet connection failed: " + detail.slice(0, 160);
+  }
+
   async function run(task: () => Promise<void>) {
     if (operationLocked.current) return;
     operationLocked.current = true;
     setBusy(true);
     try {
       await task();
-    } catch {
-      setStatus(
-        "The wallet operation could not be completed. Your recovery words have not changed. Check the connection and try again.",
-      );
+    } catch (error) {
+      setStatus(explainWalletError(error));
+      if (phase === "preparing") setPhase("restore");
     } finally {
       operationLocked.current = false;
       setBusy(false);
@@ -330,11 +336,16 @@ export default function HiveWallet({
   }
 
   async function startJoin(candidate: string) {
-    const saved = await loadRecoveryFromDevice();
-    const mnemonic = saved ?? (candidate ? checkRecovery(candidate) : createRecovery());
-    seed.current = mnemonic;
-    onRecoveryReady(mnemonic);
-    await connectAndOpen(mnemonic, "keys", !saved);
+    try {
+      const saved = await loadRecoveryFromDevice();
+      const mnemonic = saved ?? (candidate ? checkRecovery(candidate) : createRecovery());
+      seed.current = mnemonic;
+      onRecoveryReady(mnemonic);
+      await connectAndOpen(mnemonic, "keys", !saved);
+    } catch (error) {
+      setStatus(explainWalletError(error));
+      setPhase("restore");
+    }
   }
 
   function previewWalletSetup() {
