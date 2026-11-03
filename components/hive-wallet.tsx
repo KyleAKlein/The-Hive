@@ -77,6 +77,7 @@ export default function HiveWallet({
   const sdk = useRef<BreezSdk | null>(null);
   const listenerId = useRef<string | null>(null);
   const operationLocked = useRef(false);
+  const joinStarted = useRef(false);
   const fundingInvoiceRef = useRef("");
   const [phase, setPhase] = useState<Phase>("restore");
   const [recovery, setRecovery] = useState("");
@@ -96,7 +97,8 @@ export default function HiveWallet({
   const [fundingPaid, setFundingPaid] = useState(false);
 
   useEffect(() => {
-    if (intent === "join" && !seed.current) {
+    if (intent === "join" && !joinStarted.current) {
+      joinStarted.current = true;
       setPhase("preparing");
       setStatus("Securing your new wallet on this browser before creating the funding QR…");
       void startJoin(initialRecovery);
@@ -261,10 +263,16 @@ export default function HiveWallet({
   }
 
   async function connectWallet(mnemonic: string, destination: WalletConnectionDestination) {
+    setStatus("Connecting to Breez Spark…");
+    const pendingConnection = connectHiveWallet(mnemonic);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {timer = setTimeout(() => reject(new Error("Breez connection timed out after 30 seconds. Retry or check Cloudflare logs.")), 30000);});
+    let connected: BreezSdk;
+    try { connected = await Promise.race([pendingConnection, timeout]); }
+    catch (error) { void pendingConnection.then(client => client.disconnect().catch(() => undefined), () => undefined); throw error; }
+    finally { if (timer) clearTimeout(timer); }
     seed.current = mnemonic;
     onRecoveryReady(mnemonic);
-    setStatus("Opening your Bitcoin wallet…");
-    const connected = await connectHiveWallet(mnemonic);
     sdk.current = connected;
     try {
       listenerId.current = await connected.addEventListener({
@@ -316,49 +324,25 @@ export default function HiveWallet({
       try {
         await connectWallet(mnemonic, destination);
       } catch (error) {
-        if (destination === "keys" && intent === "join") {
-          seed.current = mnemonic;
-          onRecoveryReady(mnemonic);
-          onConnectionChange(false);
-          setStatus("Preview mode: keys created locally, but Breez is not connected yet.");
-          onFundingComplete(mnemonic, true);
-          return;
-        }
-        if (destination !== "active" || intent !== "restore") throw error;
-        seed.current = mnemonic;
-        onRecoveryReady(mnemonic);
         onConnectionChange(false);
-        setPhase("active");
-        setStatus("Preview mode: your key was accepted, but the Breez wallet service is not connected yet.");
-        onOpenApp(true);
+        setPhase("restore");
+        throw error;
       }
     });
   }
 
   async function startJoin(candidate: string) {
     try {
-      const saved = await loadRecoveryFromDevice();
-      const mnemonic = saved ?? (candidate ? checkRecovery(candidate) : createRecovery());
+      const mnemonic = candidate ? checkRecovery(candidate) : createRecovery();
       seed.current = mnemonic;
       onRecoveryReady(mnemonic);
-      await connectAndOpen(mnemonic, "keys", !saved);
+      await connectAndOpen(mnemonic, "keys", false);
     } catch (error) {
       setStatus(explainWalletError(error));
       setPhase("restore");
     }
   }
 
-  function previewWalletSetup() {
-    let mnemonic = seed.current;
-    if (!mnemonic) {
-      mnemonic = initialRecovery ? checkRecovery(initialRecovery) : createRecovery();
-      seed.current = mnemonic;
-      onRecoveryReady(mnemonic);
-    }
-    onConnectionChange(false);
-    setStatus("Preview only: no Breez wallet or Bitcoin payment was created.");
-    onFundingComplete(mnemonic, true);
-  }
 
   async function finishBackup() {
     if (sdk.current) {
@@ -413,14 +397,12 @@ export default function HiveWallet({
             <span className="spinner" aria-hidden="true" />
             <div><b>Securing this browser</b><small>No seed words are shown during startup.</small></div>
           </div>
-          {intent === "join" && (
-            <button className="hive-secondary" disabled={busy} onClick={previewWalletSetup}>
-              Preview wallet setup without Breez →
-            </button>
-          )}
+          <p className="lightning-muted">A real Breez connection is required. No preview wallet will be created if it fails.</p>
         </>
       )}
 
+      {phase === "restore" && status && <p role="alert" className="hive-key-warning">{status}</p>}
+      {phase === "restore" && intent === "join" && <button className="hive-secondary" disabled={busy} onClick={()=>{setStatus("");setPhase("preparing");void startJoin(initialRecovery);}}>Retry Breez connection</button>}
       {phase === "backup" && (
         <>
           <h2>Save your wallet private key</h2>
