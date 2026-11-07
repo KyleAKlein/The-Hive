@@ -334,7 +334,7 @@ export default function HiveWallet({
     const mnemonic = saved ?? (candidate ? checkRecovery(candidate) : createRecovery());
     seed.current = mnemonic;
     onRecoveryReady(mnemonic);
-    await connectAndOpen(mnemonic, "keys", !saved);
+    await connectAndOpen(mnemonic, "fund", !saved);
   }
 
   function previewWalletSetup() {
