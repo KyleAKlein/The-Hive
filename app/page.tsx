@@ -68,6 +68,7 @@ export default function Home() {
   const [realWalletBalance,setRealWalletBalance]=useState<number|null>(null);
   const [walletPreview,setWalletPreview]=useState(false);
   const [walletSessionGeneration,setWalletSessionGeneration]=useState(0);
+  const walletSessionRef=useRef(0);
   const [savingWalletKeys,setSavingWalletKeys]=useState(false);
   const [loggingOut,setLoggingOut]=useState(false);
   const [logoutError,setLogoutError]=useState("");
@@ -117,6 +118,8 @@ export default function Home() {
     setCopyError("");
     setLogoutError("");
     setWalletPreview(false);
+    walletSessionRef.current+=1;
+    setWalletSessionGeneration(walletSessionRef.current);
     setWalletIntent("join");
     setScreen("hive-wallet");
   };
@@ -327,7 +330,7 @@ export default function Home() {
           </button>
           <button className="welcome-demo-button" onClick={()=>setScreen("home")}>Explore the demo <span aria-hidden="true">↗</span></button>
         </div>
-        <button className="welcome-return" onClick={() => {setLogoutError("");setWalletRecovery("");setWalletKeys(null);setWalletConnected(false);setRealWalletBalance(null);setWalletPreview(false);setWalletSessionGeneration(value=>value+1);setWalletIntent("restore");setScreen("hive-wallet");}}>
+        <button className="welcome-return" onClick={() => {setLogoutError("");setWalletRecovery("");setWalletKeys(null);setWalletConnected(false);setRealWalletBalance(null);setWalletPreview(false);walletSessionRef.current+=1;setWalletSessionGeneration(walletSessionRef.current);setWalletIntent("restore");setScreen("hive-wallet");}}>
           <strong>Enter the Hive <span aria-hidden="true">→</span></strong><small>Restore a wallet</small>
         </button>
         <details className="welcome-about">
@@ -336,7 +339,7 @@ export default function Home() {
         </details>
       </div>}
 
-      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={handleWalletConnection} onBalanceChange={setRealWalletBalance} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setWalletPreview(false);setScreen("welcome");}else setScreen("home");}} onOpenApp={openHiveApp} onFundingComplete={(recovery,preview=false)=>{const keys=createWalletAccessKeys(recovery);setWalletRecovery(recovery);setWalletKeys(keys);registerPublicWallet(keys.publicKey);setWalletPreview(preview);setScreen("keys");}}/></div>}
+      {<div hidden={screen!=="hive-wallet"} className="flow-screen"><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={handleWalletConnection} onBalanceChange={setRealWalletBalance} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setWalletPreview(false);setScreen("welcome");}else setScreen("home");}} onOpenApp={(preview)=>{if(walletSessionGeneration!==walletSessionRef.current)return;openHiveApp(preview);}} onFundingComplete={(recovery,preview=false)=>{const keys=createWalletAccessKeys(recovery);setWalletRecovery(recovery);setWalletKeys(keys);registerPublicWallet(keys.publicKey);setWalletPreview(preview);setScreen("keys");}}/></div>}
 
       {screen === "wallet-registry" && <div className="flow-screen wallet-registry-screen">
         <button className="back" onClick={()=>setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
