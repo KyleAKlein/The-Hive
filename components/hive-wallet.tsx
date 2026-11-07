@@ -477,7 +477,7 @@ export default function HiveWallet({
           <h2>Create your wallet</h2>
           <p className="flow-copy">Start your Hive wallet by sending Bitcoin to this QR code.</p>
           <p className="join-fee-copy">Scan with a Lightning wallet and choose how much to send.</p>
-          <details className="funding-backup"><summary>Save your private key before sending</summary><p>Use this key to reopen your wallet if this page refreshes. Keep it private.</p><textarea readOnly aria-label="Wallet private key backup" value={seed.current ? createWalletPrivateKey(seed.current) : ""} onFocus={event => event.currentTarget.select()} /><button disabled={!seed.current} onClick={() => copy(createWalletPrivateKey(seed.current), "Wallet private key copied. Save it somewhere private before sending.")}>Copy private key</button></details>
+          
           {fundingInvoice ? (
             <div className="lightning-invoice hive-wallet-address">
               <div className="funding-hex">
