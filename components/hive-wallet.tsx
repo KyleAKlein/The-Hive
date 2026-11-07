@@ -134,9 +134,12 @@ export default function HiveWallet({
     setBusy(true);
     try {
       await task();
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
       setStatus(
-        "The wallet operation could not be completed. Your recovery words have not changed. Check the connection and try again.",
+        message === "The Breez wallet connection is not configured."
+          ? "Lightning wallet setup is unavailable: the Cloudflare BREEZ_API_KEY secret is missing. No payment QR can be generated until it is configured."
+          : "Unable to initialize the Lightning wallet. Check the Breez connection and try again. No payment QR has been created.",
       );
     } finally {
       operationLocked.current = false;
@@ -402,6 +405,11 @@ export default function HiveWallet({
             <span className="spinner" aria-hidden="true" />
             <div><b>Securing this browser</b><small>No seed words are shown during startup.</small></div>
           </div>
+          {intent === "join" && status.startsWith("Unable to initialize") && (
+            <button className="hive-secondary" disabled={busy} onClick={() => void startJoin(initialRecovery)}>
+              Retry Lightning connection →
+            </button>
+          )}
           {intent === "join" && (
             <button className="hive-secondary" disabled={busy} onClick={previewWalletSetup}>
               Preview wallet setup without Breez →
