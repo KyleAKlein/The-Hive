@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import LiveBuckets from "@/components/live-buckets";
+import type { LiveWalletSnapshot } from "@/lib/live-buckets";
 import HiveWallet from "@/components/hive-wallet";
 import LightningWallet from "@/components/lightning-wallet";
 import { allocateDeposit } from "@/lib/bucket-math";
@@ -65,7 +67,7 @@ export default function Home() {
   const [walletKeys,setWalletKeys]=useState<{privateKey:string;publicKey:string}|null>(null);
   const [backupRequest,setBackupRequest]=useState(0);
   const [walletConnected,setWalletConnected]=useState(false);
-  const [realWalletBalance,setRealWalletBalance]=useState<number|null>(null);
+  const [liveWallet,setLiveWallet]=useState<LiveWalletSnapshot|null>(null);
   const [walletPreview,setWalletPreview]=useState(false);
   const [walletSessionGeneration,setWalletSessionGeneration]=useState(0);
   const walletSessionRef=useRef(0);
@@ -132,7 +134,7 @@ export default function Home() {
     setProfileNotice(preview?"Wallet key accepted. You are viewing your Hive profile in preview mode until Breez is connected.":"");
     setScreen("home");
   };
-  const handleWalletConnection=(connected:boolean)=>{setWalletConnected(connected);if(!connected)setRealWalletBalance(null);};
+  const handleWalletConnection=(connected:boolean)=>{setWalletConnected(connected);if(!connected)setLiveWallet(null);};
 
   const finishSavingWalletKeys=async()=>{
     if(savingWalletKeys)return;
@@ -332,7 +334,7 @@ export default function Home() {
           </button>
           <button className="welcome-demo-button" onClick={()=>setScreen("home")}>Explore the demo <span aria-hidden="true">↗</span></button>
         </div>
-        <button className="welcome-return" onClick={() => {setLogoutError("");setWalletRecovery("");setWalletKeys(null);setWalletConnected(false);setRealWalletBalance(null);setWalletPreview(false);walletSessionRef.current+=1;setWalletSessionGeneration(walletSessionRef.current);setWalletIntent("restore");setScreen("hive-wallet");}}>
+        <button className="welcome-return" onClick={() => {setLogoutError("");setWalletRecovery("");setWalletKeys(null);setWalletConnected(false);setLiveWallet(null);setWalletPreview(false);walletSessionRef.current+=1;setWalletSessionGeneration(walletSessionRef.current);setWalletIntent("restore");setScreen("hive-wallet");}}>
           <strong>Enter the Hive <span aria-hidden="true">→</span></strong><small>Restore a wallet</small>
         </button>
         <details className="welcome-about">
@@ -341,7 +343,7 @@ export default function Home() {
         </details>
       </div>}
 
-      {screen !== "welcome" && (screen === "hive-wallet" || walletConnected) && <div className="flow-screen" hidden={screen !== "hive-wallet"}><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={handleWalletConnection} onBalanceChange={setRealWalletBalance} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){walletSessionRef.current+=1;setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setWalletPreview(false);setScreen("welcome");}else setScreen("home");}} onOpenApp={(preview)=>{if(walletSessionGeneration!==walletSessionRef.current)return;openHiveApp(preview);}} onFundingComplete={(recovery,preview=false)=>{const keys=createWalletAccessKeys(recovery);setWalletRecovery(recovery);setWalletKeys(keys);registerPublicWallet(keys.publicKey);setWalletPreview(preview);setScreen("keys");}}/></div>}
+      {screen !== "welcome" && (screen === "hive-wallet" || walletConnected) && <div className="flow-screen" hidden={screen !== "hive-wallet"}><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={handleWalletConnection} onBalanceChange={setLiveWallet} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){walletSessionRef.current+=1;setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setWalletPreview(false);setScreen("welcome");}else setScreen("home");}} onOpenApp={(preview)=>{if(walletSessionGeneration!==walletSessionRef.current)return;openHiveApp(preview);}} onFundingComplete={(recovery,preview=false)=>{const keys=createWalletAccessKeys(recovery);setWalletRecovery(recovery);setWalletKeys(keys);registerPublicWallet(keys.publicKey);setWalletPreview(preview);setScreen("keys");}}/></div>}
 
       {screen === "wallet-registry" && <div className="flow-screen wallet-registry-screen">
         <button className="back" onClick={()=>setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
@@ -431,7 +433,8 @@ export default function Home() {
         <p className="session-note">Simulated transactions · Saved on this browser</p>
       </div>}
 
-      {screen === "buckets" && <div className="flow-screen tile-wallet-screen">
+      {screen === "buckets" && liveWallet && <LiveBuckets key={liveWallet.identity} wallet={liveWallet} onBack={()=>setScreen("home")}/>}
+      {screen === "buckets" && !liveWallet && <div className="flow-screen tile-wallet-screen">
         <button className="back" onClick={()=>{setScreen("home");setEditBucketId(null);}} aria-label="Back to hub"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <div className="wallet-root-tile"><svg viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="currentColor" stroke="currentColor" strokeWidth="1.8"/></svg><span><small>MY CELL</small><strong>D-313</strong><small>{balance.toLocaleString()} sats</small></span></div>
@@ -496,7 +499,7 @@ export default function Home() {
         {!visibleMembers.length&&<p className="directory-copy">No Cells found. Try another name, Cell number or tag.</p>}
         <p className="profile-demo-caption">Demo directory · sample members.<br/>Anonymous Cells keep their number and hide their name and tag.</p>
       </div>}
-      {screen === "my-profile" && <div className="flow-screen public-profile"><div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to directory"><ArrowLeft/></button><span>MY PROFILE</span><Pencil size={18}/></div><div className="own-profile-avatar">{profileName.split(" ").map(part=>part[0]).join("").slice(0,2).toUpperCase()}</div><h2>{profileName}</h2><p className="profile-role">{profileCell} · {profileTag}</p><section className="profile-privacy"><h3>Directory privacy</h3><label><span><b>Appear as Anonymous Cell</b><small>Hide your name and tag. Your Cell number stays visible and can still receive tips.</small></span><input type="checkbox" role="switch" checked={anonymous} onChange={e=>setAnonymous(e.target.checked)}/></label><p className="directory-section-label">HOW YOU APPEAR IN THE DIRECTORY</p><div className="privacy-preview"><span><b>{anonymous?"Anonymous Cell":profileName}</b>{!anonymous&&<small>{profileTag}</small>}</span><em>{profileCell}</em></div><p className="profile-demo-caption" role="status">{anonymous?"Your name and tag are hidden.":"Your name and tag are visible."} Saved to your signed-in Hive profile.</p></section><button className="own-directory-link" onClick={()=>{setCellSearch(profileCell);setScreen("directory");}}>View my directory listing <ArrowUpRight size={16}/></button></div>}
+      {screen === "my-profile" && <div className="flow-screen public-profile"><div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to directory"><ArrowLeft/></button><span>MY PROFILE</span><Pencil size={18}/></div><div className="own-profile-avatar">{profileName.split(" ").map(part=>part[0]).join("").slice(0,2).toUpperCase()}</div><h2>{profileName}</h2><p className="profile-role">{profileCell} · {profileTag}</p><section className="profile-privacy"><h3>Directory privacy</h3><label><span><b>Appear as Anonymous Cell</b><small>Hide your name and tag. Your Cell number stays visible and can still receive tips.</small></span><input type="checkbox" role="switch" checked={anonymous} onChange={e=>setAnonymous(e.target.checked)}/></label><p className="directory-section-label">HOW YOU APPEAR IN THE DIRECTORY</p><div className="privacy-preview"><span><b>{anonymous?"Anonymous Cell":profileName}</b>{!anonymous&&<small>{profileTag}</small>}</span><em>{profileCell}</em></div><p className="profile-demo-caption" role="status">{anonymous?"Your name and tag are hidden.":"Your name and tag are visible."} Saved to your signed-in Hive profile.</p></section>{liveWallet&&<button className="own-directory-link" onClick={()=>setScreen("buckets")}>Bitcoin buckets <ArrowUpRight size={16}/></button>}<button className="own-directory-link" onClick={()=>{setCellSearch(profileCell);setScreen("directory");}}>View my directory listing <ArrowUpRight size={16}/></button></div>}
       {screen === "member" && <div className="flow-screen public-profile"><div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to directory"><ArrowLeft/></button><span>PUBLIC PROFILE</span><Users size={18}/></div><div className="own-profile-avatar">{member.name==="Anonymous Cell"?<Users/>:member.name.split(" ").map(n=>n[0]).join("")}</div><h2>{member.name}</h2><p className="profile-role">{member.cell}{member.tag&&` · ${member.tag}`}</p><p className="profile-bio">{member.name==="Anonymous Cell"?"This member keeps their identity private.":"Part of the Hive."}</p><div className="profile-actions"><button className="profile-tip" onClick={()=>{openPayment("send");setRecipient(member.cell);}}><Send size={16}/>Send a tip</button></div><p className="profile-demo-caption">Demo member · simulated payments only.</p></div>}
       {screen === "profile" && <div className="flow-screen public-profile">
         <div className="profile-topbar"><button onClick={()=>setScreen("directory")} aria-label="Back to The Hive"><ArrowLeft size={20}/></button><span>PUBLIC PROFILE</span><button className={savedCell?"saved":""} onClick={()=>setSavedCell(!savedCell)} aria-label={savedCell?"Unsave Cell":"Save Cell"} aria-pressed={savedCell}><Bookmark size={20} fill={savedCell?"currentColor":"none"}/></button></div>
@@ -516,7 +519,7 @@ export default function Home() {
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <button className="cell-badge" aria-label="Open My Wallet and buckets" onClick={()=>setScreen("buckets")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><small>My Wallet</small></button>
         {walletConnected&&<button className="lightning-entry" onClick={()=>setScreen("hive-wallet")}><Zap size={18}/> Open your Bitcoin wallet <ArrowUpRight size={16}/></button>}
-        <p className="profile-demo-caption">{walletConnected?"Live wallet · balance reported by Breez Spark":"Demo wallet below · sample funds and Cells"}</p><p className="home-label">YOUR CELL · D-313</p><h2>{(realWalletBalance??balance).toLocaleString()} sats</h2><p className="fiat">{walletConnected?"Real Bitcoin balance":`Spendable · ${reserved.toLocaleString()} sats in buckets`}</p>
+        <p className="profile-demo-caption">{walletConnected?"Live wallet · balance reported by Breez Spark":"Demo wallet below · sample funds and Cells"}</p><p className="home-label">YOUR CELL · D-313</p><h2>{(liveWallet?.balanceSats??balance).toLocaleString()} sats</h2><p className="fiat">{walletConnected?"Real Bitcoin balance":`Spendable · ${reserved.toLocaleString()} sats in buckets`}</p>
         <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>{walletConnected?"Demo Send":"Send"}</span></button><button onClick={() => setScreen(walletConnected?"hive-wallet":"receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={()=>setScreen("my-profile")}>My profile</button>
