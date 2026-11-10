@@ -1,5 +1,7 @@
 "use client";
 
+import type { LiveWalletSnapshot } from "@/lib/live-buckets";
+
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type {
   BreezSdk,
@@ -67,7 +69,7 @@ export default function HiveWallet({
   initialRecovery: string;
   backupRequest: number;
   onConnectionChange: (connected: boolean) => void;
-  onBalanceChange: (balanceSats: number) => void;
+  onBalanceChange: (wallet: LiveWalletSnapshot) => void;
   onRecoveryReady: (recovery: string) => void;
   onBack: () => void;
   onOpenApp: (preview?: boolean) => void;
@@ -163,7 +165,19 @@ export default function HiveWallet({
     ]);
     if (sdk.current !== client) return;
     setInfo(walletInfo);
-    onBalanceChange(walletInfo.balanceSats);
+    const snapshot: LiveWalletSnapshot = {
+      identity: walletInfo.identityPubkey,
+      balanceSats: walletInfo.balanceSats,
+      async refreshBalance() {
+        if (sdk.current !== client) throw new Error("Reconnect your wallet before moving sats.");
+        const latest = await client.getInfo({ ensureSynced: true });
+        if (sdk.current !== client) throw new Error("Reconnect your wallet before moving sats.");
+        setInfo(latest);
+        onBalanceChange({ ...snapshot, balanceSats: latest.balanceSats });
+        return latest.balanceSats;
+      },
+    };
+    onBalanceChange(snapshot);
     setPayments(history.payments);
     const fundingConfirmed = history.payments.some((payment) =>
       isCompletedFundingPayment(payment, fundingInvoiceRef.current),
