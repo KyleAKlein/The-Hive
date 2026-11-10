@@ -79,6 +79,7 @@ export default function HiveWallet({
   const listenerId = useRef<string | null>(null);
   const operationLocked = useRef(false);
   const fundingInvoiceRef = useRef("");
+  const fundingCodeField = useRef<HTMLTextAreaElement>(null);
   const [phase, setPhase] = useState<Phase>("restore");
   const [recovery, setRecovery] = useState("");
   const [backupSaved, setBackupSaved] = useState(false);
@@ -94,6 +95,7 @@ export default function HiveWallet({
   const [lightningNote, setLightningNote] = useState("");
   const [lightningInvoice, setLightningInvoice] = useState("");
   const [fundingInvoice, setFundingInvoice] = useState("");
+  const [fundingCopyStatus, setFundingCopyStatus] = useState("");
   const [fundingPaid, setFundingPaid] = useState(false);
 
   useEffect(() => {
@@ -180,6 +182,7 @@ export default function HiveWallet({
   async function createFundingInvoice(client: BreezSdk) {
     setPhase("fund");
     setFundingInvoice("");
+    setFundingCopyStatus("");
     fundingInvoiceRef.current = "";
     setFundingPaid(false);
     setStatus("Preparing your receiving QR…");
@@ -260,6 +263,18 @@ export default function HiveWallet({
       setStatus(message);
     } catch {
       setStatus("Clipboard unavailable. Select the text and copy it manually.");
+    }
+  }
+
+  async function copyFundingInvoice() {
+    try {
+      await navigator.clipboard.writeText(fundingInvoice);
+      setFundingCopyStatus("Copied. Paste it into your Lightning wallet.");
+    } catch {
+      const field = fundingCodeField.current;
+      field?.focus();
+      field?.select();
+      setFundingCopyStatus("Use your device’s Copy command on the selected payment request.");
     }
   }
 
@@ -496,7 +511,7 @@ export default function HiveWallet({
         <>
           <h2>Create your wallet</h2>
           <p className="flow-copy">Start your Hive wallet by sending Bitcoin to this QR code.</p>
-          <p className="join-fee-copy">Scan with a Lightning wallet and choose how much to send.</p>
+          <p className="join-fee-copy">Scan the QR code or paste the payment request into a Lightning wallet, then choose how much to send.</p>
           
           {fundingInvoice ? (
             <div className="lightning-invoice hive-wallet-address">
@@ -504,7 +519,17 @@ export default function HiveWallet({
                 <svg className="funding-hex-border" viewBox="0 0 320 360" fill="none" aria-hidden="true"><path d="M150 9Q160 3 170 9L303 85Q313 91 313 103V257Q313 269 303 275L170 351Q160 357 150 351L17 275Q7 269 7 257V103Q7 91 17 85Z" fill="#090c08" stroke="#d7ad58" strokeWidth="3"/></svg>
                 <div className="funding-hex-code"><QRCodeSVG aria-label="Lightning wallet funding QR code" value={fundingInvoice.toUpperCase()} size={228} level="M" marginSize={4} /></div>
               </div>
-              <button className="join-copy-invoice" onClick={() => copy(fundingInvoice, "Payment code copied.")}>Copy payment code</button>
+              <button type="button" className="join-copy-invoice" onClick={copyFundingInvoice}>Copy Lightning payment request</button>
+              <textarea
+                ref={fundingCodeField}
+                readOnly
+                rows={2}
+                spellCheck={false}
+                aria-label="Lightning payment request"
+                value={fundingInvoice}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+              <p className="join-fee-note" role="status">{fundingCopyStatus}</p>
               <p className="join-fee-note">Valid for 24 hours · Your sending wallet shows applicable fees.</p>
             </div>
           ) : (
