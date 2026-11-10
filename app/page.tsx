@@ -140,7 +140,7 @@ export default function Home() {
     setCopyError("");
     try{
       await clearRecoveryFromDevice();
-      openHiveApp();
+      openHiveApp(walletPreview);
     }catch{
       setCopyError("Your temporary device recovery could not be cleared. Try again before continuing.");
     }finally{
@@ -154,7 +154,9 @@ export default function Home() {
     setLogoutError("");
     try{
       await clearRecoveryFromDevice();
-      const next=createLoggedOutWalletSession(walletSessionGeneration);
+      const next=createLoggedOutWalletSession(walletSessionRef.current);
+      walletSessionRef.current=next.generation;
+      setBackupRequest(0);
       setWalletSessionGeneration(next.generation);
       setWalletIntent(next.intent);
       setWalletRecovery(next.recovery);
@@ -339,7 +341,7 @@ export default function Home() {
         </details>
       </div>}
 
-      {screen === "hive-wallet" && <div className="flow-screen"><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={handleWalletConnection} onBalanceChange={setRealWalletBalance} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setWalletPreview(false);setScreen("welcome");}else setScreen("home");}} onOpenApp={(preview)=>{if(walletSessionGeneration!==walletSessionRef.current)return;openHiveApp(preview);}} onFundingComplete={(recovery,preview=false)=>{const keys=createWalletAccessKeys(recovery);setWalletRecovery(recovery);setWalletKeys(keys);registerPublicWallet(keys.publicKey);setWalletPreview(preview);setScreen("keys");}}/></div>}
+      {screen !== "welcome" && (screen === "hive-wallet" || walletConnected) && <div className="flow-screen" hidden={screen !== "hive-wallet"}><HiveWallet key={walletSessionGeneration} visible={screen === "hive-wallet"} intent={walletIntent} initialRecovery={walletRecovery} backupRequest={backupRequest} onConnectionChange={handleWalletConnection} onBalanceChange={setRealWalletBalance} onRecoveryReady={setWalletRecovery} onBack={()=>{if(walletIntent==="restore"){walletSessionRef.current+=1;setWalletIntent(null);setWalletRecovery("");setWalletKeys(null);setWalletPreview(false);setScreen("welcome");}else setScreen("home");}} onOpenApp={(preview)=>{if(walletSessionGeneration!==walletSessionRef.current)return;openHiveApp(preview);}} onFundingComplete={(recovery,preview=false)=>{const keys=createWalletAccessKeys(recovery);setWalletRecovery(recovery);setWalletKeys(keys);registerPublicWallet(keys.publicKey);setWalletPreview(preview);setScreen("keys");}}/></div>}
 
       {screen === "wallet-registry" && <div className="flow-screen wallet-registry-screen">
         <button className="back" onClick={()=>setScreen("welcome")} aria-label="Back"><ArrowLeft/></button>
@@ -433,6 +435,7 @@ export default function Home() {
         <button className="back" onClick={()=>{setScreen("home");setEditBucketId(null);}} aria-label="Back to hub"><ArrowLeft/></button>
         <div className="mini-brand"><HiveMark compact/><span>THE HIVE</span></div>
         <div className="wallet-root-tile"><svg viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="currentColor" stroke="currentColor" strokeWidth="1.8"/></svg><span><small>MY CELL</small><strong>D-313</strong><small>{balance.toLocaleString()} sats</small></span></div>
+        <p className="profile-demo-caption">Practice buckets · Separate from your Bitcoin balance</p>
         <p className="tile-wallet-total">{formatDollars(balance)} spendable <span>· {formatDollars(reserved)} in buckets</span></p>
         <div className="tile-grid-tools"><span>Tap to deposit · Pencil to edit</span><button onClick={()=>setArranging(!arranging)}>{arranging?"Done":"Arrange"}</button></div>
         <div className={`honeycomb-canvas ${arranging?"arrange-active":""}`} style={{aspectRatio:`2.5 / ${Math.ceil(slotCount/2)*.79+ .25}`}}>
@@ -514,7 +517,7 @@ export default function Home() {
         <button className="cell-badge" aria-label="Open My Wallet and buckets" onClick={()=>setScreen("buckets")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><span>D-313</span><small>My Wallet</small></button>
         {walletConnected&&<button className="lightning-entry" onClick={()=>setScreen("hive-wallet")}><Zap size={18}/> Open your Bitcoin wallet <ArrowUpRight size={16}/></button>}
         <p className="profile-demo-caption">{walletConnected?"Live wallet · balance reported by Breez Spark":"Demo wallet below · sample funds and Cells"}</p><p className="home-label">YOUR CELL · D-313</p><h2>{(realWalletBalance??balance).toLocaleString()} sats</h2><p className="fiat">{walletConnected?"Real Bitcoin balance":`Spendable · ${reserved.toLocaleString()} sats in buckets`}</p>
-        <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>Send</span></button><button onClick={() => setScreen(walletConnected?"hive-wallet":"receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
+        <div className="home-actions"><button onClick={() => openPayment("send")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Send/><span>{walletConnected?"Demo Send":"Send"}</span></button><button onClick={() => setScreen(walletConnected?"hive-wallet":"receive")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><QrCode/><span>Receive</span></button><button onClick={()=>setScreen("town")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Users/><span>The Hive</span></button><button onClick={() => setScreen("activity")}><svg className="wallet-hex-frame" viewBox="6 6 196 206" fill="none" aria-hidden="true"><path d="M94 10Q104 4 114 10L192 55Q201 60 201 71V147Q201 158 192 163L114 208Q104 214 94 208L16 163Q7 158 7 147V71Q7 60 16 55Z" fill="#0c0f0b" stroke="#d7ad58" strokeWidth="1.8"/></svg><Clock3/><span>Activity</span></button></div>
         <p className="wallet-motto">Every bit counts.</p>
         <button className="restart" onClick={()=>setScreen("my-profile")}>My profile</button>
         {walletIntent&&<button className="restart" onClick={()=>{setBackupRequest(value=>value+1);setScreen("hive-wallet");}}>Back up my wallet</button>}

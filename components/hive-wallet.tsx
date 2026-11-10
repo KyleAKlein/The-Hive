@@ -73,6 +73,7 @@ export default function HiveWallet({
   onOpenApp: (preview?: boolean) => void;
   onFundingComplete: (recovery: string, preview?: boolean) => void;
 }) {
+  const mounted = useRef(false);
   const seed = useRef("");
   const sdk = useRef<BreezSdk | null>(null);
   const listenerId = useRef<string | null>(null);
@@ -96,6 +97,23 @@ export default function HiveWallet({
   const [fundingPaid, setFundingPaid] = useState(false);
 
   useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      const client = sdk.current;
+      const activeListener = listenerId.current;
+      sdk.current = null;
+      listenerId.current = null;
+      seed.current = "";
+      if (!client) return;
+      void (async () => {
+        if (activeListener) await client.removeEventListener(activeListener).catch(() => false);
+        await client.disconnect().catch(() => undefined);
+      })();
+    };
+  }, []);
+
+  useEffect(() => {
     if (intent === "join" && !seed.current) {
       setPhase("preparing");
       setStatus("Securing your new wallet on this browser before creating the funding QR…");
@@ -114,19 +132,7 @@ export default function HiveWallet({
     setStatus("Your 12-word wallet backup is ready.");
   }, [backupRequest]);
 
-  useEffect(
-    () => () => {
-      const client = sdk.current;
-      const activeListener = listenerId.current;
-      seed.current = "";
-      if (!client) return;
-      void (async () => {
-        if (activeListener) await client.removeEventListener(activeListener).catch(() => false);
-        await client.disconnect().catch(() => undefined);
-      })();
-    },
-    [],
-  );
+
 
   async function run(task: () => Promise<void>) {
     if (operationLocked.current) return;
@@ -236,7 +242,7 @@ export default function HiveWallet({
       onBack();
       return;
     }
-    if (phase === "fund") {
+    if (phase === "fund" || (phase === "active" && sdk.current)) {
       onBack();
       return;
     }
@@ -262,6 +268,10 @@ export default function HiveWallet({
     onRecoveryReady(mnemonic);
     setStatus("Opening your Bitcoin wallet…");
     const connected = await connectHiveWallet(mnemonic);
+    if (!mounted.current) {
+      await connected.disconnect().catch(() => undefined);
+      return;
+    }
     sdk.current = connected;
     try {
       listenerId.current = await connected.addEventListener({
@@ -280,6 +290,7 @@ export default function HiveWallet({
       await disconnectWallet();
       throw new Error("wallet sync");
     }
+    if (sdk.current !== connected) return;
     setRecovery("");
     setStatus("Bitcoin wallet connected.");
     onConnectionChange(true);
@@ -334,6 +345,7 @@ export default function HiveWallet({
 
   async function startJoin(candidate: string) {
     const saved = await loadRecoveryFromDevice();
+    if (!mounted.current) return;
     const mnemonic = saved ?? (candidate ? checkRecovery(candidate) : createRecovery());
     seed.current = mnemonic;
     onRecoveryReady(mnemonic);
