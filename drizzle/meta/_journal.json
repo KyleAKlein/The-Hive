@@ -8,6 +8,13 @@
       "when": 1792252241951,
       "tag": "0000_flaky_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794616561969,
+      "tag": "0001_freezing_meteorite",
+      "breakpoints": true
     }
   ]
 }

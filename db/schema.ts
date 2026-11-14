@@ -11,3 +11,13 @@ export const profiles = sqliteTable("profiles", {
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+
+export const lockedTexts = sqliteTable("locked_texts", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  invoice: text("invoice").notNull(),
+  paymentHash: text("payment_hash").notNull().unique(),
+  sats: integer("sats").notNull(),
+  expires: integer("expires").notNull(),
+});
