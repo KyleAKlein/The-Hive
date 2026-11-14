@@ -15,7 +15,8 @@ to `main`.
 ## Required Cloudflare configuration
 
 1. Create the D1 database referenced by `vite.config.ts`.
-2. Apply `drizzle/0000_flaky_ghost_rider.sql` to the production database once.
+2. Apply the SQL migrations in `drizzle/` in order to the production database.
+   Existing deployments need `drizzle/0001_freezing_meteorite.sql` before enabling locked text.
 3. Add `BREEZ_API_KEY` as an encrypted Worker secret before testing the real
    Bitcoin wallet.
 

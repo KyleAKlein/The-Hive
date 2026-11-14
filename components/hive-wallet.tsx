@@ -10,6 +10,7 @@ import type {
   SdkEvent,
 } from "@breeztech/breez-sdk-spark/ssr";
 import { QRCodeSVG } from "qrcode.react";
+import LockedTextForm from "@/components/locked-text-form";
 import WalletUnlock from "@/components/wallet-unlock";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -692,6 +693,20 @@ export default function HiveWallet({
               )}
             </>
           )}
+
+          {sdk.current && <LockedTextForm createInvoice={async (sats) => {
+            const client = sdk.current;
+            if (!client) throw new Error("Open your Bitcoin wallet first.");
+            const result = await client.receivePayment({
+              paymentMethod: {
+                type: "bolt11Invoice",
+                amountSats: sats,
+                description: "Hive locked text",
+                expirySecs: 86400,
+              },
+            });
+            return result.paymentRequest;
+          }} />}
 
           <h3>Receive on Bitcoin</h3>
           <p>
